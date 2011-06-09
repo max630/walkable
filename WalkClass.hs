@@ -24,12 +24,6 @@ do
                           stOs <- sequence $ map (\n -> newName ("stO_" ++ nameBase conName ++ "_" ++ show n)) [1 .. l]
                           return (conName, v0s, v1s, stOs))
                  tcs
-  qRunIO $ print tDatas
-  {-
-  let
-    clauseFromCon (NormalC conName conTypes) = FunD (mkName "walk") [Clause [VarP f, ConT ]]
-    map (clauseFromCon ) tcs
-  -}
   let
     clauseFromtData (conName, v0s, v1s, stOs) =
              Clause [VarP f, ConP conName (map VarP v0s)]
@@ -45,7 +39,6 @@ do
                 [ClassP (mkName "Quasi") [VarT m]]
                 (foldl AppT (ConT (mkName "Walkable")) [VarT m, ConT (mkName "Exp"), ConT (mkName "Exp")])
                 [FunD (mkName "walk") (map clauseFromtData tDatas)]
-  qRunIO $ print $ ppr res
   return [res]
 
 
