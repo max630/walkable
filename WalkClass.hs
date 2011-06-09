@@ -23,7 +23,7 @@ do
                           v1s <- sequence $ map (\n -> newName ("v1_" ++ nameBase conName ++ "_" ++ show n)) [1 .. l]
                           stOs <- sequence $ map (\n -> newName ("stO_" ++ nameBase conName ++ "_" ++ show n)) [1 .. l]
                           return (conName, v0s, v1s, stOs))
-                 (take 1 tcs)
+                 tcs
   qRunIO $ print tDatas
   {-
   let
@@ -32,8 +32,7 @@ do
   -}
   let
     clauseFromtData (conName, v0s, v1s, stOs) =
-        FunD (mkName "walk")
-             [Clause [VarP f, ConP conName (map VarP v0s)]
+             Clause [VarP f, ConP conName (map VarP v0s)]
                 (NormalB (DoE (
                           zipWith3 (\v0 v1 stO ->
                                       BindS (TupP [VarP v1, VarP stO])
@@ -41,11 +40,11 @@ do
                                    v0s v1s stOs
                           ++ [NoBindS (AppE (VarE $ mkName "return")
                                             (TupE [foldl AppE (ConE conName) (map VarE v1s), AppE (VarE $ mkName "mconcat") (ListE $ map VarE stOs)]))]
-                        ))) []]
+                        ))) []
     res = InstanceD
                 [ClassP (mkName "Quasi") [VarT m]]
                 (foldl AppT (ConT (mkName "Walkable")) [VarT m, ConT (mkName "Exp"), ConT (mkName "Exp")])
-                (map clauseFromtData tDatas)
+                [FunD (mkName "walk") (map clauseFromtData tDatas)]
   qRunIO $ print $ ppr res
   return [res]
 
