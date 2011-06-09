@@ -58,7 +58,7 @@ let
         return dec
   in
     sequence (map makeInstance [''Dec, ''Match, ''Stmt, ''Range, ''Body, ''Guard, ''Clause]
-             ++ map makeEmpty [''Pat, ''Name, ''Type, ''Pragma, ''FamFlavour, ''Foreign, ''FunDep, ''Pred, ''Kind, ''Con, ''TyVarBndr]
+             ++ map makeEmpty [''Pat, ''Name, ''Type, ''Pragma, ''FamFlavour, ''Foreign, ''FunDep, ''Pred, ''Kind, ''Con, ''TyVarBndr, ''Lit]
              ++ [makeDecWalk (mkName "walkExpImpl") ''Exp])
 
 instance (Quasi m) => Walkable m Exp Exp where

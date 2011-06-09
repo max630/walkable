@@ -14,7 +14,7 @@ import Data.IORef (readIORef, writeIORef, newIORef, IORef)
 import List (sortBy)
 import Monad (zipWithM)
 import System.IO.Unsafe(unsafePerformIO)
-import THLib (io, runIO)
+import ExtractIO (io, handleIO)
 
 get a i =
   do
@@ -56,14 +56,14 @@ solve l =
 
 step [] _ sum = return sum
 step (next : l) a sum =
-  $(runIO [|
+  $(handleIO [|
     do
       putStrLn ("step, sum:" ++ show sum ++ ", nexts:")
       nexts <- mapM readIORef (next : l)
       print nexts
       putStrLn "a:"
       es <- getElems a
-      sequence_ $ map (\e -> do {print (io (readIORef e))}) es
+      sequence_ $ map (\e -> do {print (io $ readIORef e)}) es
       (iM, vM) <- readIORef next
       let pM = getP vM
       putStrLn ("pM:" ++ show pM)
@@ -71,7 +71,7 @@ step (next : l) a sum =
         then step l a sum
         else
           do
-            if getP (io (get a pM)) > getP vM -- cannot be less, can be more
+            if getP (io $ get a pM) > getP vM -- cannot be less, can be more
               then
                 do
                   moveDown a iM pM
@@ -81,7 +81,7 @@ step (next : l) a sum =
                   moveDown a iM (pM + 1)
                   let sum' = sum + (iM - pM - 1)
                   -- find 
-                  Just iZ <- findM (\i -> do {return (getP (io (get a i)) > pM)}) (reverse [1 .. (pM - 1)])
+                  Just iZ <- findM (\i -> do {return (getP (io $ get a i) > pM)}) (reverse [1 .. (pM - 1)])
                   moveUp a iZ (pM + 1)
                   step l a (sum' + (pM + 1 - iZ))
     |])
