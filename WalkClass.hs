@@ -4,7 +4,10 @@ module WalkClass where
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (Quasi, qRunIO)
 import Monad (mapAndUnzipM)
+import List (group, sort)
+import Data.Maybe (Maybe)
 import Data.Monoid (Monoid, mempty, mappend, mconcat)
+import System.IO.Unsafe (unsafePerformIO)
 
 -- TODO: input state?
 class (Quasi m) => Walkable m a b where
@@ -21,16 +24,18 @@ $(let
           TyConI (DataD [] _ [] tcs []) -> return ()
           _ -> fail (show td0)
         let TyConI (DataD [] _ [] tcs []) = td0
-        tDatas <- mapM (\(NormalC conName conTypes) ->
+        tDatas <- mapM (\ (NormalC conName conTypes) ->
                               do
-                                let l = length conTypes
+                                let
+                                  l = length conTypes
+                                  addTypes = concat $ map (\ (_, t) -> getTypes t) conTypes
                                 v0s <- sequence $ map (\n -> newName ("v0_" ++ nameBase conName ++ "_" ++ show n)) [1 .. l]
                                 v1s <- sequence $ map (\n -> newName ("v1_" ++ nameBase conName ++ "_" ++ show n)) [1 .. l]
                                 stOs <- sequence $ map (\n -> newName ("stO_" ++ nameBase conName ++ "_" ++ show n)) [1 .. l]
-                                return (conName, v0s, v1s, stOs))
+                                return (conName, v0s, v1s, stOs, addTypes))
                        tcs
         let
-          clauseFromtData (conName, v0s, v1s, stOs) =
+          clauseFromtData (conName, v0s, v1s, stOs, _) =
                    Clause [VarP f, ConP conName (map VarP v0s)]
                       (NormalB (DoE (
                                 zipWith3 (\v0 v1 stO ->
@@ -40,15 +45,21 @@ $(let
                                 ++ [NoBindS (AppE (VarE $ mkName "return")
                                                   (TupE [foldl AppE (ConE conName) (map VarE v1s), AppE (VarE $ mkName "mconcat") (ListE $ map VarE stOs)]))]
                               ))) []
-        return $ FunD walkName (map clauseFromtData tDatas)
+        return (FunD walkName (map clauseFromtData tDatas), uniq $ concat $ map (\ (_, _, _, _, ts) -> ts) tDatas)
+    getTypes (AppT t1 t2) = (getTypes t1) ++ (getTypes t2)
+    getTypes (ConT n) | elem (nameBase n) ["Maybe", "[]", "(,)"] = []
+    getTypes (ConT n) = [nameBase n]
+    getTypes ListT = []
+    getTypes (TupleT _) = []
     makeInstance tName =
       do
         m <- newName "m"
-        decWalk <- makeDecWalk (mkName "walk") tName
-        return $ InstanceD
+        (decWalk, dependencies) <- makeDecWalk (mkName "walk") tName
+        return (InstanceD
                       [ClassP (mkName "Quasi") [VarT m]]
                       (foldl AppT (ConT (mkName "Walkable")) [VarT m, ConT tName, ConT (mkName "Exp")])
                       [decWalk]
+               , dependencies)
     makeEmpty tName =
       do
         m <- newName "m"
@@ -60,10 +71,32 @@ $(let
                                  [Clause [VarP f, VarP e]
                                          (NormalB $ AppE (VarE $ mkName "return") (TupE [VarE e, VarE (mkName "mempty")]))
                                          []]]
+    cycle done result [] = return result
+    cycle done result (next : rest) =
+      do
+        qRunIO $ print (done, (next : rest))
+        if next `elem` empties
+          then do {v <- makeEmpty (mkName next); cycle (next : done) (result ++ [v]) rest}
+          else
+            if next `elem` reals
+              then
+                do
+                  (v, newdeps) <- makeInstance (mkName next)
+                  let
+                    new_done = (next : done)
+                    filtered_newdeps = filter (\s -> notElem s new_done && notElem s rest && notElem s ignores) newdeps
+                  cycle new_done (result ++ [v]) (rest ++ filtered_newdeps)
+              else fail ("Unknown type: " ++ next ++ show done)
+    empties = ["Pat", "Name", "Type", "Pragma", "FamFlavour", "Foreign", "FunDep", "Pred", "Kind", "Con", "TyVarBndr", "Lit"]
+    reals = ["Dec", "Match", "Stmt", "Range", "Body", "Guard", "Clause"]
+    ignores = ["FieldExp", "Exp", "Cxt"]
+    uniq l = map head $ group $ sort l
   in
-    sequence (map makeInstance [''Dec, ''Match, ''Stmt, ''Range, ''Body, ''Guard, ''Clause]
-             ++ map makeEmpty [''Pat, ''Name, ''Type, ''Pragma, ''FamFlavour, ''Foreign, ''FunDep, ''Pred, ''Kind, ''Con, ''TyVarBndr, ''Lit]
-             ++ [makeDecWalk (mkName "walkExpImpl") ''Exp]))
+    do
+      (expRes, expDeps) <- makeDecWalk (mkName "walkExpImpl") ''Exp
+      qRunIO $ print (filter (`notElem` ignores) (uniq expDeps))
+      cycle ["Exp"] [expRes] (filter (`notElem` ignores) (uniq expDeps) ++ ["Pred"])
+  )
 
 instance (Quasi m) => Walkable m Exp Exp where
   walk f e = f e
