@@ -12,7 +12,7 @@ class (Quasi m) => Walkable m a b where
 
 -- instance Quasi m => Walkable m Dec where { $(return [FunD (mkName "walk") []]) }
 
-let
+$(let
     makeDecWalk walkName tName =
       do
         f <- newName "f"
@@ -51,15 +51,18 @@ let
                       [decWalk]
     makeEmpty tName =
       do
-        [dec] <- [d|
-                instance (Quasi m) => Walkable m $(return $ ConT tName) Exp where
-                  walk f v = return (v, mempty)
-              |]
-        return dec
+        m <- newName "m"
+        f <- newName "f"
+        e <- newName "e"
+        return $ InstanceD [ClassP (mkName "Quasi") [VarT m]]
+                           (foldl AppT (ConT (mkName "Walkable")) [VarT m, ConT tName, ConT (mkName "Exp")])
+                           [FunD (mkName "walk")
+                                 [Clause [VarP f, VarP e]
+                                         (NormalB $ AppE (mkName "return") (TupE [VarE e, VarE (mkName "mempty")]))]]
   in
     sequence (map makeInstance [''Dec, ''Match, ''Stmt, ''Range, ''Body, ''Guard, ''Clause]
              ++ map makeEmpty [''Pat, ''Name, ''Type, ''Pragma, ''FamFlavour, ''Foreign, ''FunDep, ''Pred, ''Kind, ''Con, ''TyVarBndr, ''Lit]
-             ++ [makeDecWalk (mkName "walkExpImpl") ''Exp])
+             ++ [makeDecWalk (mkName "walkExpImpl") ''Exp]))
 
 instance (Quasi m) => Walkable m Exp Exp where
   walk f e = f e
