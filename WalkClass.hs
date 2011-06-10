@@ -58,7 +58,8 @@ $(let
                            (foldl AppT (ConT (mkName "Walkable")) [VarT m, ConT tName, ConT (mkName "Exp")])
                            [FunD (mkName "walk")
                                  [Clause [VarP f, VarP e]
-                                         (NormalB $ AppE (mkName "return") (TupE [VarE e, VarE (mkName "mempty")]))]]
+                                         (NormalB $ AppE (VarE $ mkName "return") (TupE [VarE e, VarE (mkName "mempty")]))
+                                         []]]
   in
     sequence (map makeInstance [''Dec, ''Match, ''Stmt, ''Range, ''Body, ''Guard, ''Clause]
              ++ map makeEmpty [''Pat, ''Name, ''Type, ''Pragma, ''FamFlavour, ''Foreign, ''FunDep, ''Pred, ''Kind, ''Con, ''TyVarBndr, ''Lit]
