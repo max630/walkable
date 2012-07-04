@@ -75,18 +75,17 @@ $(let
     cycle done result (next : rest) =
       do
         qRunIO $ print (done, (next : rest))
-        if next `elem` empties
-          then do {v <- makeEmpty (mkName next); cycle (next : done) (result ++ [v]) rest}
-          else
-            if next `elem` reals
-              then
-                do
-                  (v, newdeps) <- makeInstance (mkName next)
-                  let
-                    new_done = (next : done)
-                    filtered_newdeps = filter (\s -> notElem s new_done && notElem s rest && notElem s ignores) newdeps
-                  cycle new_done (result ++ [v]) (rest ++ filtered_newdeps)
-              else fail ("Unknown type: " ++ next ++ show done)
+        case () of
+          _ | next `elem` empties -> do
+            v <- makeEmpty (mkName next)
+            cycle (next : done) (result ++ [v]) rest
+          _ | next `elem` reals -> do
+            (v, newdeps) <- makeInstance (mkName next)
+            let
+              new_done = (next : done)
+              filtered_newdeps = filter (\s -> notElem s new_done && notElem s rest && notElem s ignores) newdeps
+            cycle new_done (result ++ [v]) (rest ++ filtered_newdeps)
+          _ -> fail ("Unknown type: " ++ next ++ show done)
     empties = ["Pat", "Name", "Type", "Pragma", "FamFlavour", "Foreign", "FunDep", "Pred", "Kind", "Con", "TyVarBndr", "Lit"]
     reals = ["Dec", "Match", "Stmt", "Range", "Body", "Guard", "Clause"]
     ignores = ["FieldExp", "Exp", "Cxt"]
