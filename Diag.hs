@@ -11,8 +11,8 @@ Idea: go through
 import Data.Array.MArray (newListArray, readArray, writeArray, getElems)
 import Data.Array.IO (IOArray)
 import Data.IORef (readIORef, writeIORef, newIORef, IORef)
-import List (sortBy)
-import Monad (zipWithM)
+import Data.List (sortBy)
+import Control.Monad (zipWithM)
 import System.IO.Unsafe(unsafePerformIO)
 import ExtractIO (io, handleIO)
 

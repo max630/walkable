@@ -3,8 +3,8 @@ module WalkClass where
 
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (Quasi, qRunIO)
-import Monad (mapAndUnzipM)
-import List (group, sort)
+import Control.Monad (mapAndUnzipM)
+import Data.List (group, sort)
 import Data.Maybe (Maybe)
 import Data.Monoid (Monoid, mempty, mappend, mconcat)
 import System.IO.Unsafe (unsafePerformIO)
