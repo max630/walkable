@@ -22,7 +22,7 @@ $(let
         td0 <- reify tName
         case td0 of
           TyConI (DataD [] _ [] tcs []) -> return ()
-          _ -> fail (show td0)
+          _ -> fail ("not a TyConI: " ++ show td0)
         let TyConI (DataD [] _ [] tcs []) = td0
         tDatas <- mapM (\ (NormalC conName conTypes) ->
                               do
