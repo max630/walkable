@@ -86,9 +86,9 @@ $(let
               filtered_newdeps = filter (\s -> notElem s new_done && notElem s rest && notElem s ignores) newdeps
             cycle new_done (result ++ [v]) (rest ++ filtered_newdeps)
           _ -> fail ("Unknown type: " ++ next ++ show done)
-    empties = ["Pat", "Name", "Type", "Pragma", "FamFlavour", "Foreign", "FunDep", "Pred", "Kind", "Con", "TyVarBndr", "Lit"]
-    reals = ["Dec", "Match", "Stmt", "Range", "Body", "Guard", "Clause"]
-    ignores = ["FieldExp", "Exp", "Cxt"]
+    empties = ["Name", "Type", "Pragma", "FamFlavour", "Foreign", "FunDep", "Pred", "Kind", "Con", "TyVarBndr", "Lit"]
+    reals = ["FieldExp", "Pat", "Dec", "Match", "Stmt", "Range", "Body", "Guard", "Clause"]
+    ignores = ["Exp", "Cxt"]
     uniq l = map head $ group $ sort l
   in
     do
