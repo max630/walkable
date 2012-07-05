@@ -20,11 +20,9 @@ $(let
       do
         f <- newName "f"
         td0 <- reify tName
-        case td0 of
-          TyConI (DataD [] _ [] tcs []) -> return ()
-          _ -> fail ("not a TyConI: " ++ show td0)
-        let TyConI (DataD [] _ [] tcs []) = td0
-        tDatas <- mapM (\ (NormalC conName conTypes) ->
+        tDatas <- case td0 of
+          TyConI (DataD [] _ [] tcs []) ->
+                  mapM (\ (NormalC conName conTypes) ->
                               do
                                 let
                                   l = length conTypes
@@ -34,8 +32,13 @@ $(let
                                 stOs <- sequence $ map (\n -> newName ("stO_" ++ nameBase conName ++ "_" ++ show n)) [1 .. l]
                                 return (conName, v0s, v1s, stOs, addTypes))
                        tcs
+          _ -> fail ("not a simple data declaration: " ++ show td0)
         let
           clauseFromtData (conName, v0s, v1s, stOs, _) =
+                   -- \ ,f (,conName ,v0s[0] ...) -> do
+                   --     (,v1s[0], ,stOs[0]) <- walk ,f ,v0s[0]
+                   --     ...
+                   --     return (,conName ,v1s[0] ,v1s[1] ..., mconcat [,stOs[0], ,stOs[1] ...])
                    Clause [VarP f, ConP conName (map VarP v0s)]
                       (NormalB (DoE (
                                 zipWith3 (\v0 v1 stO ->
@@ -55,6 +58,8 @@ $(let
       do
         m <- newName "m"
         (decWalk, dependencies) <- makeDecWalk (mkName "walk") tName
+        -- instance Quasi m => Walkable m ,tName Exp where
+        --  ,decWalk
         return (InstanceD
                       [ClassP (mkName "Quasi") [VarT m]]
                       (foldl AppT (ConT (mkName "Walkable")) [VarT m, ConT tName, ConT (mkName "Exp")])
@@ -65,6 +70,8 @@ $(let
         m <- newName "m"
         f <- newName "f"
         e <- newName "e"
+        -- instance Quasi m => Walkable m ,tName Exp where
+        --  walk ,f ,e = return (,e, mempty)
         return $ InstanceD [ClassP (mkName "Quasi") [VarT m]]
                            (foldl AppT (ConT (mkName "Walkable")) [VarT m, ConT tName, ConT (mkName "Exp")])
                            [FunD (mkName "walk")
