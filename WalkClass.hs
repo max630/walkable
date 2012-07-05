@@ -16,7 +16,7 @@ class (Quasi m) => Walkable m a b where
 -- instance Quasi m => Walkable m Dec where { $(return [FunD (mkName "walk") []]) }
 
 $(let
-    makeDecWalk walkName tName paramType =
+    makeDecWalk walkName tName =
       do
         f <- newName "f"
         td0 <- reify tName
@@ -57,7 +57,7 @@ $(let
     makeInstance tName paramType =
       do
         m <- newName "m"
-        (decWalk, dependencies) <- makeDecWalk (mkName "walk") tName paramType
+        (decWalk, dependencies) <- makeDecWalk (mkName "walk") tName
         -- instance Quasi m => Walkable m ,tName ,paramType where
         --  ,decWalk
         return (InstanceD
@@ -99,7 +99,7 @@ $(let
     uniq l = map head $ group $ sort l
   in
     do
-      (expRes, expDeps) <- makeDecWalk (mkName "walkExpImpl") ''Exp ''Exp
+      (expRes, expDeps) <- makeDecWalk (mkName "walkExpImpl") ''Exp
       qRunIO $ print (filter (`notElem` ignores) (uniq expDeps))
       cycle ["Exp"] [expRes] (ConT ''Exp) (filter (`notElem` ignores) (uniq expDeps) ++ ["Pred"])
   )
