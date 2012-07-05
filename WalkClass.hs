@@ -16,7 +16,7 @@ class (Quasi m) => Walkable m a b where
 -- instance Quasi m => Walkable m Dec where { $(return [FunD (mkName "walk") []]) }
 
 $(let
-    makeDecWalk walkName tName =
+    makeDecWalk walkName tName paramType =
       do
         f <- newName "f"
         td0 <- reify tName
@@ -54,44 +54,44 @@ $(let
     getTypes (ConT n) = [nameBase n]
     getTypes ListT = []
     getTypes (TupleT _) = []
-    makeInstance tName =
+    makeInstance tName paramType =
       do
         m <- newName "m"
-        (decWalk, dependencies) <- makeDecWalk (mkName "walk") tName
-        -- instance Quasi m => Walkable m ,tName Exp where
+        (decWalk, dependencies) <- makeDecWalk (mkName "walk") tName paramType
+        -- instance Quasi m => Walkable m ,tName ,paramType where
         --  ,decWalk
         return (InstanceD
                       [ClassP (mkName "Quasi") [VarT m]]
-                      (foldl AppT (ConT (mkName "Walkable")) [VarT m, ConT tName, ConT (mkName "Exp")])
+                      (foldl AppT (ConT (mkName "Walkable")) [VarT m, ConT tName, paramType])
                       [decWalk]
                , dependencies)
-    makeEmpty tName =
+    makeEmpty tName paramType =
       do
         m <- newName "m"
         f <- newName "f"
         e <- newName "e"
-        -- instance Quasi m => Walkable m ,tName Exp where
+        -- instance Quasi m => Walkable m ,tName ,paramType where
         --  walk ,f ,e = return (,e, mempty)
         return $ InstanceD [ClassP (mkName "Quasi") [VarT m]]
-                           (foldl AppT (ConT (mkName "Walkable")) [VarT m, ConT tName, ConT (mkName "Exp")])
+                           (foldl AppT (ConT (mkName "Walkable")) [VarT m, ConT tName, paramType])
                            [FunD (mkName "walk")
                                  [Clause [VarP f, VarP e]
                                          (NormalB $ AppE (VarE $ mkName "return") (TupE [VarE e, VarE (mkName "mempty")]))
                                          []]]
-    cycle done result [] = return result
-    cycle done result (next : rest) =
+    cycle done result paramType [] = return result
+    cycle done result paramType (next : rest) =
       do
         qRunIO $ print (done, (next : rest))
         case () of
           _ | next `elem` empties -> do
-            v <- makeEmpty (mkName next)
-            cycle (next : done) (result ++ [v]) rest
+            v <- makeEmpty (mkName next) paramType
+            cycle (next : done) (result ++ [v]) paramType rest
           _ | next `elem` reals -> do
-            (v, newdeps) <- makeInstance (mkName next)
+            (v, newdeps) <- makeInstance (mkName next) paramType
             let
               new_done = (next : done)
               filtered_newdeps = filter (\s -> notElem s new_done && notElem s rest && notElem s ignores) newdeps
-            cycle new_done (result ++ [v]) (rest ++ filtered_newdeps)
+            cycle new_done (result ++ [v]) paramType (rest ++ filtered_newdeps)
           _ -> fail ("Unknown type: " ++ next ++ show done)
     empties = ["Pat", "Name", "Type", "Pragma", "FamFlavour", "Foreign", "FunDep", "Pred", "Kind", "Con", "TyVarBndr", "Lit"]
     reals = ["Dec", "Match", "Stmt", "Range", "Body", "Guard", "Clause"]
@@ -99,9 +99,9 @@ $(let
     uniq l = map head $ group $ sort l
   in
     do
-      (expRes, expDeps) <- makeDecWalk (mkName "walkExpImpl") ''Exp
+      (expRes, expDeps) <- makeDecWalk (mkName "walkExpImpl") ''Exp ''Exp
       qRunIO $ print (filter (`notElem` ignores) (uniq expDeps))
-      cycle ["Exp"] [expRes] (filter (`notElem` ignores) (uniq expDeps) ++ ["Pred"])
+      cycle ["Exp"] [expRes] (ConT ''Exp) (filter (`notElem` ignores) (uniq expDeps) ++ ["Pred"])
   )
 
 instance (Quasi m) => Walkable m Exp Exp where
