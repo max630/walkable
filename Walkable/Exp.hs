@@ -18,7 +18,7 @@ $(let
             v <- makeEmpty (mkName next) paramType
             cycle (next : done) (result ++ [v]) paramType rest
           _ | next `elem` reals -> do
-            (v, newdeps) <- makeInstance (mkName next) paramType
+            (v, newdeps) <- makeSingleInstance (mkName next) paramType
             let
               new_done = (next : done)
               filtered_newdeps = filter (\s -> notElem s new_done && notElem s rest && notElem s ignores) newdeps

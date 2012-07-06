@@ -55,7 +55,7 @@ makeDecWalk walkName tName =
     getTypes ListT = []
     getTypes (TupleT _) = []
 
-makeInstance tName paramType =
+makeSingleInstance tName paramType =
   do
     m <- newName "m"
     (decWalk, dependencies) <- makeDecWalk (mkName "walk") tName
