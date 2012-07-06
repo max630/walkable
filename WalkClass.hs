@@ -11,7 +11,7 @@ import System.IO.Unsafe (unsafePerformIO)
 
 -- TODO: input state?
 class (Quasi m) => Walkable m a b where
-  walk :: Monoid stO => (b -> m (b, stO)) -> a -> m (a, stO)
+  walk :: Monoid stO => b stO -> a -> m (a, stO)
 
 -- instance Quasi m => Walkable m Dec where { $(return [FunD (mkName "walk") []]) }
 
@@ -97,11 +97,17 @@ $(let
     reals = ["Dec", "Match", "Stmt", "Range", "Body", "Guard", "Clause"]
     ignores = ["FieldExp", "Exp", "Cxt"]
     uniq l = map head $ group $ sort l
+    simpleDecPType dataType = do
+      ptName <- newName "PType"
+      out <- newName "out"
+      -- type ,ptName ,out = ,dataType -> (,dataType, ,out)
+      return (TySynD ptName [PlainTV out] (AppT (AppT ArrowT dataType) (AppT (AppT (TupleT 2) dataType) (VarT out))), ptName)
   in
     do
       (expRes, expDeps) <- makeDecWalk (mkName "walkExpImpl") ''Exp
       qRunIO $ print (filter (`notElem` ignores) (uniq expDeps))
-      cycle ["Exp"] [expRes] (ConT ''Exp) (filter (`notElem` ignores) (uniq expDeps) ++ ["Pred"])
+      (ptDec, ptName) <- simpleDecPType (ConT ''Exp)
+      cycle ["Exp"] [ptDec, expRes] (ConT ptName) (filter (`notElem` ignores) (uniq expDeps) ++ ["Pred"])
   )
 
 instance (Quasi m) => Walkable m Exp Exp where
