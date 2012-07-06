@@ -2,7 +2,7 @@
 module LCase where
 
 import Language.Haskell.TH
-import WalkClass (walk, walkExpImpl)
+import Walkable (walk, walkExpImpl)
 
 lcase :: [a -> b] -> a -> b
 lcase = undefined

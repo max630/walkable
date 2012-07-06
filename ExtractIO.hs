@@ -2,7 +2,7 @@
 module ExtractIO where
 
 import Language.Haskell.TH
-import WalkClass (walk, walkExpImpl)
+import Walkable (walk, walkExpImpl)
 import Data.Monoid (mempty, mappend, mconcat)
 
 io :: IO a -> a 
