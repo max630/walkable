@@ -10,6 +10,11 @@ import Data.Maybe (Maybe)
 import Data.Monoid (Monoid, mempty, mappend, mconcat)
 import System.IO.Unsafe (unsafePerformIO)
 
+-- TODO:
+-- * bring cycle also here. Make nice to use functions
+-- * add type synonims
+-- * allow transforming a list of toplevel declarations
+
 makeDecWalk walkName tName =
   do
     f <- newName "f"
