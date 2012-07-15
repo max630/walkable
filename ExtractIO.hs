@@ -26,7 +26,7 @@ instance (Quasi m, Monoid w) => Quasi (WriterT w m) where
   qRunIO = liftT1 qRunIO
   qAddDependentFile = liftT1 qAddDependentFile
 
-take a = censor (const mempty) $ listen a
+pop a = censor (const mempty) $ listen a
 
 handleIO mainEQ =
   do
@@ -49,7 +49,7 @@ handleIO mainEQ =
         where
           tr st =
             do
-              (st', bs) <- take (walk handleIOf st)
+              (st', bs) <- pop (walk handleIOf st)
               return ((map bindB bs) ++ [st'])
           bindB (name, e) = BindS (VarP name) e
       handleIOf e = walkExpImpl handleIOf e
