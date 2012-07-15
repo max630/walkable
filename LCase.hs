@@ -4,6 +4,8 @@ module LCase where
 import Language.Haskell.TH
 import Walkable (walk, walkExpImpl)
 
+import Control.Monad(liftM)
+
 lcase :: [a -> b] -> a -> b
 lcase = undefined
 
@@ -15,16 +17,13 @@ handleLCaseF lcaseE (AppE lcaseV clauses) | lcaseV == lcaseE =
                   _ -> fail ("handleLCase: clauses must me list of lambdas: " ++ show (ppr clauses))
     clauses'' <-
       mapM (\v -> case v of
-                    LamE [p] e -> do
-                      (e', _) <- walk (handleLCaseF lcaseE) e
-                      return $ Match p (NormalB e') []
+                    LamE [p] e -> liftM (\e' -> Match p (NormalB e') []) $ walk (handleLCaseF lcaseE) e
                     _ -> fail ("handleLCase: only single-pattern lambda is allowed in clauses: " ++ show (ppr v)))
             clauses'
-    return (LamE [VarP var] (CaseE (VarE var) clauses''), ())
+    return (LamE [VarP var] (CaseE (VarE var) clauses''))
 handleLCaseF lcaseE exp = walkExpImpl (handleLCaseF lcaseE) exp
 
 handleLCase expQ = do
   lcaseE <- [|lcase|]
   exp <- expQ
-  (res, _) <- handleLCaseF lcaseE exp
-  return res
+  handleLCaseF lcaseE exp
