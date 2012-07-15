@@ -1,0 +1,2 @@
+%.hi: %.hs
+	ghc --make $^
