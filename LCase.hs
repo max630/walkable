@@ -9,7 +9,7 @@ import Control.Monad(liftM)
 lcase :: [a -> b] -> a -> b
 lcase = undefined
 
-handleLCaseF lcaseE (AppE lcaseV clauses) | lcaseV == lcaseE =
+handleLCaseF (AppE lcaseV clauses) | lcaseV == (VarE 'lcase) =
   do
     var <- newName "var"
     clauses' <- case clauses of
@@ -17,13 +17,12 @@ handleLCaseF lcaseE (AppE lcaseV clauses) | lcaseV == lcaseE =
                   _ -> fail ("handleLCase: clauses must me list of lambdas: " ++ show (ppr clauses))
     clauses'' <-
       mapM (\v -> case v of
-                    LamE [p] e -> liftM (\e' -> Match p (NormalB e') []) $ walk (handleLCaseF lcaseE) e
+                    LamE [p] e -> liftM (\e' -> Match p (NormalB e') []) $ walk handleLCaseF e
                     _ -> fail ("handleLCase: only single-pattern lambda is allowed in clauses: " ++ show (ppr v)))
             clauses'
     return (LamE [VarP var] (CaseE (VarE var) clauses''))
-handleLCaseF lcaseE exp = walkExpImpl (handleLCaseF lcaseE) exp
+handleLCaseF exp = walkExpImpl handleLCaseF exp
 
 handleLCase expQ = do
-  lcaseE <- [|lcase|]
   exp <- expQ
-  handleLCaseF lcaseE exp
+  handleLCaseF exp

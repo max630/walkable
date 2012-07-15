@@ -30,9 +30,6 @@ pop a = censor (const mempty) $ listen a
 
 handleIO mainEQ =
   do
-    mainE <- mainEQ
-    ioE <- [|io|]
-    appE <- [|($)|]
     let
       handleIOMatch e =
         do
@@ -40,8 +37,8 @@ handleIO mainEQ =
           io_res <- lift (newName "io_res")
           tell [(io_res, e')]
           return (VarE io_res)
-      handleIOf (AppE ioV e) | ioV == ioE = handleIOMatch e
-      handleIOf (InfixE (Just ioV) appV (Just e)) | ioV == ioE && appV == appE = handleIOMatch e
+      handleIOf (AppE ioV e) | ioV == (VarE 'io) = handleIOMatch e
+      handleIOf (InfixE (Just ioV) appV (Just e)) | ioV == (VarE 'io) && appV == (VarE '($)) = handleIOMatch e
       handleIOf (DoE sts) = -- FIXME: handle only IO do's (how?)
         do
           sts' <- mapM tr sts
@@ -53,6 +50,7 @@ handleIO mainEQ =
               return ((map bindB bs) ++ [st'])
           bindB (name, e) = BindS (VarP name) e
       handleIOf e = walkExpImpl handleIOf e
+    mainE <- mainEQ
     (mainE', _) <- runWriterT (handleIOf mainE)
     return mainE'
 
