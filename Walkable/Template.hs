@@ -4,10 +4,8 @@ module Walkable.Template where
 import Walkable.Class
 
 import Language.Haskell.TH
-import Language.Haskell.TH.Syntax (Quasi, qRunIO)
+import Language.Haskell.TH.Syntax (Quasi)
 import Data.List (group, sort)
-import Data.Maybe (Maybe)
-import System.IO.Unsafe (unsafePerformIO)
 
 -- TODO:
 -- * bring cycle also here. Make nice to use functions
@@ -39,9 +37,9 @@ makeDecWalk walkName tName =
                             (NormalB (DoE (
                                       zipWith (\v0 v1 ->
                                                   BindS (VarP v1)
-                                                        (foldl AppE (VarE $ mkName "walk") [VarE f, VarE v0]))
+                                                        (foldl AppE (VarE 'walk) [VarE f, VarE v0]))
                                                v0s v1s
-                                      ++ [NoBindS (AppE (VarE $ mkName "return")
+                                      ++ [NoBindS (AppE (VarE 'return)
                                                         (foldl AppE (ConE conName) (map VarE v1s)))]
                                     ))) []
               return (FunD walkName (map clauseFromtData tDatas), uniq $ concat $ map (\ (_, _, _, ts) -> ts) tDatas)
@@ -56,12 +54,12 @@ makeDecWalk walkName tName =
 makeSingleInstance tName paramType =
   do
     m <- newName "m"
-    (decWalk, dependencies) <- makeDecWalk (mkName "walk") tName
+    (decWalk, dependencies) <- makeDecWalk 'walk tName
     -- instance Quasi m => Walkable m ,tName ,paramType where
     --  ,decWalk
     return (InstanceD
-                  [ClassP (mkName "Quasi") [VarT m]]
-                  (foldl AppT (ConT (mkName "Walkable")) [VarT m, ConT tName, paramType])
+                  [ClassP ''Quasi [VarT m]]
+                  (foldl AppT (ConT ''Walkable) [VarT m, ConT tName, paramType])
                   [decWalk]
            , dependencies)
 
@@ -72,11 +70,11 @@ makeEmpty tName paramType =
     e <- newName "e"
     -- instance Quasi m => Walkable m ,tName ,paramType where
     --  walk ,f ,e = return ,e
-    return $ InstanceD [ClassP (mkName "Quasi") [VarT m]]
-                       (foldl AppT (ConT (mkName "Walkable")) [VarT m, ConT tName, paramType])
-                       [FunD (mkName "walk")
+    return $ InstanceD [ClassP ''Quasi [VarT m]]
+                       (foldl AppT (ConT ''Walkable) [VarT m, ConT tName, paramType])
+                       [FunD 'walk
                              [Clause [VarP f, VarP e]
-                                     (NormalB $ AppE (VarE $ mkName "return") (VarE e))
+                                     (NormalB $ AppE (VarE 'return) (VarE e))
                                      []]]
 
 uniq l = map head $ group $ sort l

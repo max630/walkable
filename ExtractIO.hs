@@ -5,7 +5,7 @@ import Language.Haskell.TH
 import Language.Haskell.TH.Syntax(Quasi(..))
 import Walkable (walk, walkExpImpl)
 import Data.Monoid(Monoid(mempty))
-import Control.Monad.Writer(MonadWriter(tell, listen), censor, WriterT(WriterT), runWriterT)
+import Control.Monad.Writer(MonadWriter(tell, listen), censor, WriterT, runWriterT)
 import Control.Monad.Trans(MonadTrans(lift))
 
 io :: IO a -> a 
