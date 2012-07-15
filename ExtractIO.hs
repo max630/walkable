@@ -4,9 +4,9 @@ module ExtractIO where
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax(Quasi(..))
 import Walkable (walk, walkExpImpl)
-import Data.Monoid(Monoid)
+import Data.Monoid(Monoid(mempty))
+import Control.Monad.Writer(MonadWriter(tell, listen), censor, WriterT(WriterT), runWriterT)
 -- import Data.Monoid (mempty, mappend, mconcat)
-import Control.Monad.Writer(MonadWriter(tell, listen), WriterT(WriterT), runWriterT)
 import Control.Monad.Trans(MonadTrans(lift))
 
 io :: IO a -> a 
@@ -26,6 +26,8 @@ instance (Quasi m, Monoid w) => Quasi (WriterT w m) where
   qLocation = lift qLocation
   qRunIO = liftT1 qRunIO
   qAddDependentFile = liftT1 qAddDependentFile
+
+take a = censor (const mempty) $ listen a
 
 handleIO mainEQ =
   do
@@ -48,7 +50,7 @@ handleIO mainEQ =
         where
           tr st =
             do
-              (st', bs) <- listen (walk handleIOf st)
+              (st', bs) <- take (walk handleIOf st)
               return ((map bindB bs) ++ [st'])
           bindB (name, e) = BindS (VarP name) e
       handleIOf e = walkExpImpl handleIOf e
