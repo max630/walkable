@@ -6,9 +6,11 @@ import Language.Haskell.TH.Syntax (Quasi)
 
 -- TODO:
 -- * generic parameter type (this probably requires another class)
--- * input state?
 class (Quasi m) => Walkable m a b where
   walk :: (b -> m b) -> a -> m a
+
+-- Walkable uses m to handle context. For example, Writer can keep scope variables.
+-- Also input can also be
 
 instance (Quasi m, Walkable m a1 b, Walkable m a2 b) => Walkable m (a1, a2) b where
   walk f (e1, e2) =
