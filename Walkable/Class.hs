@@ -2,7 +2,6 @@
 module Walkable.Class where
 
 import Control.Monad (liftM)
-import Data.Monoid (Monoid, mempty, mappend, mconcat)
 import Language.Haskell.TH.Syntax (Quasi)
 
 -- TODO:

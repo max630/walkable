@@ -4,7 +4,6 @@ module Walkable.Exp where
 import Walkable.Class
 import Walkable.Template
 
-import Data.Monoid (mconcat, mempty)
 import Language.Haskell.TH.Syntax (Quasi, qRunIO)
 import Language.Haskell.TH
 
