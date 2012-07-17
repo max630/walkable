@@ -30,7 +30,7 @@ $(let
     do
       (expRes, expDeps) <- makeSingleWalk (mkName "walkExpImpl") ''Exp
       qRunIO $ print (filter (`notElem` ignores) (uniq expDeps))
-      cycle [''Exp] [expRes] (ConT ''Exp) (filter (`notElem` ignores) (uniq expDeps) ++ [''Pred])
+      cycle [] [expRes] (ConT ''Exp) (filter (`notElem` ignores) (uniq expDeps) ++ [''Pred])
   )
 
 instance (Quasi m) => Walkable m Exp Exp where
