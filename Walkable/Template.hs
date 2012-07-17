@@ -46,8 +46,8 @@ makeSingleWalk walkName tName =
       _ -> fail ("not a simple data declaration: " ++ show td0)
   where
     getTypes (AppT t1 t2) = (getTypes t1) ++ (getTypes t2)
-    getTypes (ConT n) | elem (nameBase n) ["Maybe", "[]", "(,)"] = []
-    getTypes (ConT n) = [nameBase n]
+    getTypes (ConT n) | elem n [''Maybe, ''[], ''(,)] = []
+    getTypes (ConT n) = [n]
     getTypes ListT = []
     getTypes (TupleT _) = []
 
