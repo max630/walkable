@@ -7,15 +7,20 @@ import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (Quasi, qRunIO)
 import Data.List (group, sort)
 
+import Control.Monad.Writer(tell, runWriterT)
+import Control.Monad.Trans(lift)
+
+import qualified Data.Set as S
+
 -- TODO:
 -- * add type expression parameters
 -- * add type synonims
 -- * allow transforming a list of toplevel declarations
 
 makeInstances paramType startType startName empties reals ignores addDeps = do
-  (startRes, startDeps) <- makeSingleWalk startName startType
-  qRunIO $ print (filter (`notElem` ignores) (uniq startDeps))
-  cycle [] [startRes] paramType (filter (`notElem` ignores) (uniq startDeps) ++ addDeps)
+  (startRes, startDeps) <- runWriterT (makeSingleWalk startName startType)
+  qRunIO $ print (filter (`notElem` ignores) (S.toList startDeps))
+  cycle [] [startRes] paramType (filter (`notElem` ignores) (S.toList startDeps) ++ addDeps)
   where
     cycle done result paramType [] = return result
     cycle done result paramType (next : rest) =
@@ -35,21 +40,21 @@ makeInstances paramType startType startName empties reals ignores addDeps = do
 
 makeSingleWalk walkName tName =
   do
-    f <- newName "f"
-    td0 <- reify tName
+    f <- lift $ newName "f"
+    td0 <- lift $ reify tName
     case td0 of
       TyConI (DataD [] _ [] tcs []) -> do
               tDatas <- mapM (\ (NormalC conName conTypes) ->
                                   do
+                                    mapM (\(_,t) -> tellTypes t) conTypes
                                     let
                                       l = length conTypes
-                                      addTypes = concat $ map (\ (_, t) -> getTypes t) conTypes
-                                    v0s <- sequence $ map (\n -> newName ("v0_" ++ nameBase conName ++ "_" ++ show n)) [1 .. l]
-                                    v1s <- sequence $ map (\n -> newName ("v1_" ++ nameBase conName ++ "_" ++ show n)) [1 .. l]
-                                    return (conName, v0s, v1s, addTypes))
+                                    v0s <- mapM (\n -> lift $ newName ("v0_" ++ nameBase conName ++ "_" ++ show n)) [1 .. l]
+                                    v1s <- mapM (\n -> lift $ newName ("v1_" ++ nameBase conName ++ "_" ++ show n)) [1 .. l]
+                                    return (conName, v0s, v1s))
                             tcs
               let
-                clauseFromtData (conName, v0s, v1s, _) =
+                clauseFromtData (conName, v0s, v1s) =
                          -- \ ,f (,conName ,v0s[0] ...) -> do
                          --     ,v1s[0], <- walk ,f ,v0s[0]
                          --     ...
@@ -63,26 +68,26 @@ makeSingleWalk walkName tName =
                                       ++ [NoBindS (AppE (VarE 'return)
                                                         (foldl AppE (ConE conName) (map VarE v1s)))]
                                     ))) []
-              return (FunD walkName (map clauseFromtData tDatas), uniq $ concat $ map (\ (_, _, _, ts) -> ts) tDatas)
+              return (FunD walkName (map clauseFromtData tDatas))
       _ -> fail ("not a simple data declaration: " ++ show td0)
   where
-    getTypes (AppT t1 t2) = (getTypes t1) ++ (getTypes t2)
-    getTypes (ConT n) | elem n [''Maybe, ''[], ''(,)] = []
-    getTypes (ConT n) = [n]
-    getTypes ListT = []
-    getTypes (TupleT _) = []
+    tellTypes (AppT t1 t2) = tellTypes t1 >> tellTypes t2
+    tellTypes (ConT n) | elem n [''Maybe, ''[], ''(,)] = return ()
+    tellTypes (ConT n) = tell $ S.singleton n
+    tellTypes ListT = return ()
+    tellTypes (TupleT _) = return ()
 
 makeSingleInstance tName paramType =
   do
     m <- newName "m"
-    (decWalk, dependencies) <- makeSingleWalk 'walk tName
+    (decWalk, dependencies) <- runWriterT $ makeSingleWalk 'walk tName
     -- instance Quasi m => Walkable m ,tName ,paramType where
     --  ,decWalk
     return (InstanceD
                   [ClassP ''Quasi [VarT m]]
                   (foldl AppT (ConT ''Walkable) [VarT m, ConT tName, paramType])
                   [decWalk]
-           , dependencies)
+           , S.toList dependencies)
 
 makeEmpty tName paramType =
   do
