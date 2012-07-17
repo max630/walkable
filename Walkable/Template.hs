@@ -19,9 +19,11 @@ import qualified Data.Set as S
 -- * allow transforming a list of toplevel declarations
 
 makeInstances paramType startType startName empties reals (S.fromList -> ignores) (S.fromList -> addDeps) = do
-  (startRes, startDeps) <- runWriterT (makeSingleWalk startName startType)
+  -- TODO: error reporting
+  -- ,startName = ..., to put into the handler
+  (Just startRes, startDeps) <- runWriterT (makeSingleWalk startName startType)
   qRunIO $ print ((`S.difference` ignores) startDeps)
-  cycle S.empty (maybeToList startRes) paramType ((`S.difference` ignores) startDeps `S.union` addDeps)
+  cycle S.empty [startRes] paramType ((`S.difference` ignores) startDeps `S.union` addDeps)
   where
     cycle done result paramType (S.minView -> Nothing) = return result
     cycle done result paramType todo@(S.minView -> Just (next, rest)) =
