@@ -9,6 +9,8 @@ import Language.Haskell.TH.Syntax (Quasi, qRunIO)
 import Control.Monad.Writer(tell, runWriterT)
 import Control.Monad.Trans(lift)
 
+import Data.Maybe(maybeToList)
+
 import qualified Data.Set as S
 
 -- TODO:
@@ -19,7 +21,7 @@ import qualified Data.Set as S
 makeInstances paramType startType startName empties reals (S.fromList -> ignores) (S.fromList -> addDeps) = do
   (startRes, startDeps) <- runWriterT (makeSingleWalk startName startType)
   qRunIO $ print ((`S.difference` ignores) startDeps)
-  cycle S.empty [startRes] paramType ((`S.difference` ignores) startDeps `S.union` addDeps)
+  cycle S.empty (maybeToList startRes) paramType ((`S.difference` ignores) startDeps `S.union` addDeps)
   where
     cycle done result paramType (S.minView -> Nothing) = return result
     cycle done result paramType todo@(S.minView -> Just (next, rest)) =
@@ -27,14 +29,14 @@ makeInstances paramType startType startName empties reals (S.fromList -> ignores
         qRunIO $ print (done, todo)
         case () of
           _ | next `elem` empties -> do
-            v <- makeEmpty next paramType
-            cycle (S.insert next done) (result ++ [v]) paramType rest
+            inst <- makeEmpty next paramType
+            cycle (S.insert next done) (result ++ [inst]) paramType rest
           _ | next `elem` reals -> do
-            (v, newdeps) <- makeSingleInstance next paramType
+            (inst, newdeps) <- makeSingleInstance next paramType
             let
               new_done = S.insert next done
               filtered_newdeps = (`S.difference` new_done) $ (`S.difference` ignores) newdeps
-            cycle new_done (result ++ [v]) paramType (S.union rest filtered_newdeps)
+            cycle new_done (result ++ maybeToList inst) paramType (S.union rest filtered_newdeps)
           _ -> fail ("Unknown type: " ++ show next ++ show done)
 
 makeSingleWalk walkName tName =
@@ -67,7 +69,7 @@ makeSingleWalk walkName tName =
                                       ++ [NoBindS (AppE (VarE 'return)
                                                         (foldl AppE (ConE conName) (map VarE v1s)))]
                                     ))) []
-              return (FunD walkName (map clauseFromtData tDatas))
+              return $ Just (FunD walkName (map clauseFromtData tDatas))
       _ -> fail ("not a simple data declaration: " ++ show td0)
   where
     tellTypes (AppT t1 t2) = tellTypes t1 >> tellTypes t2
@@ -82,10 +84,11 @@ makeSingleInstance tName paramType =
     (decWalk, dependencies) <- runWriterT $ makeSingleWalk 'walk tName
     -- instance Quasi m => Walkable m ,tName ,paramType where
     --  ,decWalk
-    return (InstanceD
-                  [ClassP ''Quasi [VarT m]]
-                  (foldl AppT (ConT ''Walkable) [VarT m, ConT tName, paramType])
-                  [decWalk]
+    return (fmap  (\d -> InstanceD
+                            [ClassP ''Quasi [VarT m]]
+                            (foldl AppT (ConT ''Walkable) [VarT m, ConT tName, paramType])
+                            [d])
+                  decWalk
            , dependencies)
 
 makeEmpty tName paramType =
