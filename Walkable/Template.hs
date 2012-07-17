@@ -1,11 +1,10 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, ViewPatterns #-}
 module Walkable.Template where
 
 import Walkable.Class
 
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (Quasi, qRunIO)
-import Data.List (group, sort)
 
 import Control.Monad.Writer(tell, runWriterT)
 import Control.Monad.Trans(lift)
@@ -17,25 +16,25 @@ import qualified Data.Set as S
 -- * add type synonims
 -- * allow transforming a list of toplevel declarations
 
-makeInstances paramType startType startName empties reals ignores addDeps = do
+makeInstances paramType startType startName empties reals (S.fromList -> ignores) (S.fromList -> addDeps) = do
   (startRes, startDeps) <- runWriterT (makeSingleWalk startName startType)
-  qRunIO $ print (filter (`notElem` ignores) (S.toList startDeps))
-  cycle [] [startRes] paramType (filter (`notElem` ignores) (S.toList startDeps) ++ addDeps)
+  qRunIO $ print ((`S.difference` ignores) startDeps)
+  cycle S.empty [startRes] paramType ((`S.difference` ignores) startDeps `S.union` addDeps)
   where
-    cycle done result paramType [] = return result
-    cycle done result paramType (next : rest) =
+    cycle done result paramType (S.minView -> Nothing) = return result
+    cycle done result paramType todo@(S.minView -> Just (next, rest)) =
       do
-        qRunIO $ print (done, (next : rest))
+        qRunIO $ print (done, todo)
         case () of
           _ | next `elem` empties -> do
             v <- makeEmpty next paramType
-            cycle (next : done) (result ++ [v]) paramType rest
+            cycle (S.insert next done) (result ++ [v]) paramType rest
           _ | next `elem` reals -> do
             (v, newdeps) <- makeSingleInstance next paramType
             let
-              new_done = (next : done)
-              filtered_newdeps = filter (\s -> notElem s new_done && notElem s rest && notElem s ignores) newdeps
-            cycle new_done (result ++ [v]) paramType (rest ++ filtered_newdeps)
+              new_done = S.insert next done
+              filtered_newdeps = (`S.difference` new_done) $ (`S.difference` ignores) newdeps
+            cycle new_done (result ++ [v]) paramType (S.union rest filtered_newdeps)
           _ -> fail ("Unknown type: " ++ show next ++ show done)
 
 makeSingleWalk walkName tName =
@@ -87,7 +86,7 @@ makeSingleInstance tName paramType =
                   [ClassP ''Quasi [VarT m]]
                   (foldl AppT (ConT ''Walkable) [VarT m, ConT tName, paramType])
                   [decWalk]
-           , S.toList dependencies)
+           , dependencies)
 
 makeEmpty tName paramType =
   do
@@ -102,9 +101,3 @@ makeEmpty tName paramType =
                              [Clause [VarP f, VarP e]
                                      (NormalB $ AppE (VarE 'return) (VarE e))
                                      []]]
-
-uniq l = map head $ group $ sort l
-
-
-
-
