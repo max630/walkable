@@ -4,13 +4,34 @@ module Walkable.Template where
 import Walkable.Class
 
 import Language.Haskell.TH
-import Language.Haskell.TH.Syntax (Quasi)
+import Language.Haskell.TH.Syntax (Quasi, qRunIO)
 import Data.List (group, sort)
 
 -- TODO:
--- * bring cycle also here. Make nice to use functions
+-- * add type expression parameters
 -- * add type synonims
 -- * allow transforming a list of toplevel declarations
+
+makeInstances paramType startType startName empties reals ignores addDeps = do
+  (startRes, startDeps) <- makeSingleWalk startName startType
+  qRunIO $ print (filter (`notElem` ignores) (uniq startDeps))
+  cycle [] [startRes] paramType (filter (`notElem` ignores) (uniq startDeps) ++ addDeps)
+  where
+    cycle done result paramType [] = return result
+    cycle done result paramType (next : rest) =
+      do
+        qRunIO $ print (done, (next : rest))
+        case () of
+          _ | next `elem` empties -> do
+            v <- makeEmpty next paramType
+            cycle (next : done) (result ++ [v]) paramType rest
+          _ | next `elem` reals -> do
+            (v, newdeps) <- makeSingleInstance next paramType
+            let
+              new_done = (next : done)
+              filtered_newdeps = filter (\s -> notElem s new_done && notElem s rest && notElem s ignores) newdeps
+            cycle new_done (result ++ [v]) paramType (rest ++ filtered_newdeps)
+          _ -> fail ("Unknown type: " ++ show next ++ show done)
 
 makeSingleWalk walkName tName =
   do
