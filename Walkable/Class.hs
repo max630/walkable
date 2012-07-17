@@ -1,26 +1,42 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, Arrows #-}
 module Walkable.Class where
 
 import Control.Monad (liftM)
+import Control.Arrow
 
 -- TODO:
 -- * generic parameter type (this probably requires another class)
-class (Monad m) => Walkable m a b where
-  walk :: (b -> m b) -> a -> m a
+class (Arrow a) => Walkable a u v where
+  walk :: a u u -> a v v
 
 -- Walkable uses m to handle context. For example, Writer can keep scope variables.
 -- Also input can also be
 
-instance (Monad m, Walkable m a1 b, Walkable m a2 b) => Walkable m (a1, a2) b where
-  walk f (e1, e2) =
-    do
-      e1' <- walk f e1
-      e2' <- walk f e2
-      return (e1', e2')
+instance (Arrow a, Walkable a u v1, Walkable a u v2) => Walkable a u (v1, v2) where
+  walk f =
+    proc (v1, v2) -> do
+      v1' <- walk f -< v1
+      v2' <- walk f -< v2
+      returnA -< (v1', v2')
 
+instance (ArrowChoice a, Walkable a u v) => Walkable a u (Maybe v) where
+  walk f =
+    proc vM -> case vM of
+      Nothing -> returnA -< Nothing
+      Just v -> do
+        v' <- walk f -< v
+        returnA -< Just v'
+        
+instance (ArrowChoice a, Walkable a u v) => Walkable a u [v] where
+  walk f =
+    proc vL -> case vL of
+      [] -> returnA -< []
+      (v : vT) -> do
+        v' <- walk f -< v
+        vT' <- walk f -< vT
+        returnA -< (v' : vT')
+
+{-
 instance (Monad m, Walkable m a b) => Walkable m [a] b where
   walk f es = mapM (walk f) es
-
-instance (Monad m, Walkable m a b) => Walkable m (Maybe a) b where
-  walk f Nothing = return Nothing
-  walk f (Just v) = liftM Just (walk f v)
+-}
