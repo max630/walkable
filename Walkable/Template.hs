@@ -14,8 +14,6 @@ import Data.Maybe(maybeToList)
 import qualified Data.Set as S
 
 -- TODO:
--- * add type expression parameters
--- * add type synonims
 -- * allow transforming a list of toplevel declarations
 
 makeInstances paramType startType startName empties reals (S.fromList -> ignores) (S.fromList -> addDeps) = do
@@ -72,7 +70,10 @@ makeSingleWalk walkName tName =
                                                         (foldl AppE (ConE conName) (map VarE v1s)))]
                                     ))) []
               return $ Just (FunD walkName (map clauseFromtData tDatas))
-      _ -> fail ("not a simple data declaration: " ++ show td0)
+      TyConI (TySynD _ [] tp) -> do
+              tellTypes tp
+              return Nothing
+      _ -> fail ("not a supported declaration: " ++ show td0)
   where
     tellTypes (AppT t1 t2) = tellTypes t1 >> tellTypes t2
     tellTypes (ConT n) | elem n [''Maybe, ''[], ''(,)] = return ()
