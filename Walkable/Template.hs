@@ -12,7 +12,7 @@ import Data.List (group, sort)
 -- * add type synonims
 -- * allow transforming a list of toplevel declarations
 
-makeDecWalk walkName tName =
+makeSingleWalk walkName tName =
   do
     f <- newName "f"
     td0 <- reify tName
@@ -54,7 +54,7 @@ makeDecWalk walkName tName =
 makeSingleInstance tName paramType =
   do
     m <- newName "m"
-    (decWalk, dependencies) <- makeDecWalk 'walk tName
+    (decWalk, dependencies) <- makeSingleWalk 'walk tName
     -- instance Quasi m => Walkable m ,tName ,paramType where
     --  ,decWalk
     return (InstanceD

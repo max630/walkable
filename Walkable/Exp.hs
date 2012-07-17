@@ -28,7 +28,7 @@ $(let
     ignores = ["FieldExp", "Exp", "Cxt"]
   in
     do
-      (expRes, expDeps) <- makeDecWalk (mkName "walkExpImpl") ''Exp
+      (expRes, expDeps) <- makeSingleWalk (mkName "walkExpImpl") ''Exp
       qRunIO $ print (filter (`notElem` ignores) (uniq expDeps))
       cycle ["Exp"] [expRes] (ConT ''Exp) (filter (`notElem` ignores) (uniq expDeps) ++ ["Pred"])
   )
