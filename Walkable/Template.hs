@@ -33,7 +33,7 @@ makeInstances paramType startType startName empty real ignore = do
             cycle (S.insert next done) (result ++ [inst]) paramType rest
           _ | real next -> do
             (inst, newdeps) <- makeSingleInstance next paramType
-            qRunIO $ putStrLn ("Done recurse: " ++ show (ppr next))
+            qRunIO $ putStrLn ("Done recurse: " ++ show (ppr next) ++ maybe " (no instance)" (const "") inst)
             let
               new_done = S.insert next done
               filtered_newdeps = (`S.difference` new_done) $ S.filter (not . ignore) newdeps
