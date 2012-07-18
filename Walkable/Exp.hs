@@ -7,10 +7,11 @@ import Walkable.Template
 import Language.Haskell.TH.Syntax (Quasi)
 import Language.Haskell.TH
 
-$(makeInstances (ConT ''Exp) ''Exp (mkName "walkExpImpl")
+$(let hasPrefix s p = take (length p) s == p
+  in makeInstances (ConT ''Exp) ''Exp (mkName "walkExpImpl")
                 (`elem` [''Pat, ''Name, ''Type, ''Pragma, ''FamFlavour, ''Foreign, ''FunDep, ''Pred, ''Kind, ''Con, ''TyVarBndr, ''Lit])
-                (`elem` [''Dec, ''Match, ''Stmt, ''Range, ''Body, ''Guard, ''Clause, ''Cxt])
-                (`elem` [''FieldExp, ''Exp]))
+                (\n -> case nameModule n of {Just s | s `hasPrefix` "Language.Haskell.TH." -> True; _ -> False})
+                (`elem` [''Exp]))
 
 instance (Quasi m) => Walkable m Exp Exp where
   walk f e = f e
