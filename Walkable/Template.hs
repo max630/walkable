@@ -5,6 +5,7 @@ import Walkable.Class
 
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (Quasi, qRunIO)
+import Language.Haskell.TH.Ppr (ppr)
 
 import Control.Monad.Writer(tell, runWriterT)
 import Control.Monad.Trans(lift)
@@ -20,19 +21,19 @@ makeInstances paramType startType startName empties reals (S.fromList -> ignores
   -- TODO: error reporting
   -- ,startName = ..., to put into the handler
   (Just startRes, startDeps) <- runWriterT (makeSingleWalk startName startType)
-  qRunIO $ print ((`S.difference` ignores) startDeps)
   cycle S.empty [startRes] paramType ((`S.difference` ignores) startDeps `S.union` addDeps)
   where
     cycle done result paramType (S.minView -> Nothing) = return result
     cycle done result paramType todo@(S.minView -> Just (next, rest)) =
       do
-        qRunIO $ print (done, todo)
         case () of
           _ | next `elem` empties -> do
             inst <- makeEmpty next paramType
+            qRunIO $ putStrLn ("Done empty: " ++ show (ppr next))
             cycle (S.insert next done) (result ++ [inst]) paramType rest
           _ | next `elem` reals -> do
             (inst, newdeps) <- makeSingleInstance next paramType
+            qRunIO $ putStrLn ("Done recurse: " ++ show (ppr next))
             let
               new_done = S.insert next done
               filtered_newdeps = (`S.difference` new_done) $ (`S.difference` ignores) newdeps
