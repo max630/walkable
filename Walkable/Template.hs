@@ -17,26 +17,26 @@ import qualified Data.Set as S
 -- TODO:
 -- * allow transforming a list of toplevel declarations
 
-makeInstances paramType startType startName empties reals (S.fromList -> ignores) (S.fromList -> addDeps) = do
+makeInstances paramType startType startName empty real ignore = do
   -- TODO: error reporting
   -- ,startName = ..., to put into the handler
   (Just startRes, startDeps) <- runWriterT (makeSingleWalk startName startType)
-  cycle S.empty [startRes] paramType ((`S.difference` ignores) startDeps `S.union` addDeps)
+  cycle S.empty [startRes] paramType (S.filter (not . ignore) startDeps)
   where
     cycle done result paramType (S.minView -> Nothing) = return result
     cycle done result paramType todo@(S.minView -> Just (next, rest)) =
       do
         case () of
-          _ | next `elem` empties -> do
+          _ | empty next -> do
             inst <- makeEmpty next paramType
             qRunIO $ putStrLn ("Done empty: " ++ show (ppr next))
             cycle (S.insert next done) (result ++ [inst]) paramType rest
-          _ | next `elem` reals -> do
+          _ | real next -> do
             (inst, newdeps) <- makeSingleInstance next paramType
             qRunIO $ putStrLn ("Done recurse: " ++ show (ppr next))
             let
               new_done = S.insert next done
-              filtered_newdeps = (`S.difference` new_done) $ (`S.difference` ignores) newdeps
+              filtered_newdeps = (`S.difference` new_done) $ S.filter (not . ignore) newdeps
             cycle new_done (result ++ maybeToList inst) paramType (S.union rest filtered_newdeps)
           _ -> fail ("Unknown type: " ++ show next ++ show done)
 
