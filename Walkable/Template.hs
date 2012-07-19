@@ -31,8 +31,9 @@ import qualified Data.Set as S
 makeInstances paramType startType startName empty real ignore = do
   -- TODO: error reporting
   -- ,startName = ..., to put into the handler
+  startFuncType <- [t|Monad m => ($(return paramType) -> m $(return paramType)) -> $(conT startType) -> m $(conT startType)|]
   (Just startRes, startDeps) <- runWriterT (makeSingleWalk startName startType paramType)
-  cycle S.empty [startRes] paramType (S.filter (not . ignore) startDeps)
+  cycle S.empty [SigD startName startFuncType, startRes] paramType (S.filter (not . ignore) startDeps)
   where
     cycle done result paramType (S.minView -> Nothing) = return result
     cycle done result paramType todo@(S.minView -> Just (next, rest)) =
