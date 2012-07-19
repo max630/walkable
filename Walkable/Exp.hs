@@ -12,5 +12,5 @@ $(let hasPrefix s p = take (length p) s == p
                 (\n -> case nameModule n of {Just s | s `hasPrefix` "Language.Haskell.TH." -> True; _ -> False})
                 (`elem` [''Exp]))
 
-instance (Monad m) => Walkable m Exp Exp where
+instance Walkable Exp Exp where
   walk f e = f e

@@ -105,8 +105,8 @@ makeSingleWalk walkName tName paramType =
                                                         (foldl AppE (ConE conName) (map VarE v1s)))]
                                     ))) []
                 -}
-              -- wType <- lift [t|forall v . Walkable m v $(return paramType) => v -> m v|]
-              cType <- lift [t|Monad m => (forall v . Walkable m v $(return paramType) => v -> m v) -> m $(conT tName)|]
+              -- wType <- lift [t|forall v . Walkable v $(return paramType) => v -> m v|]
+              cType <- lift [t|Monad m => (forall v . Walkable v $(return paramType) => v -> m v) -> m $(conT tName)|]
               walkClosure <- lift [|walk $(varE f)  |]
               return $ Just (FunD walkName
                               [
@@ -129,26 +129,24 @@ makeSingleWalk walkName tName paramType =
 
 makeSingleInstance tName paramType =
   do
-    m <- newName "m"
     (decWalk, dependencies) <- runWriterT $ makeSingleWalk 'walk tName paramType
-    -- instance Monad m => Walkable m ,tName ,paramType where
+    -- instance Walkable ,tName ,paramType where
     --  ,decWalk
     return (fmap  (\d -> InstanceD
-                            [ClassP ''Monad [VarT m]]
-                            (foldl AppT (ConT ''Walkable) [VarT m, ConT tName, paramType])
+                            []
+                            (foldl AppT (ConT ''Walkable) [ConT tName, paramType])
                             [d])
                   decWalk
            , dependencies)
 
 makeEmpty tName paramType =
   do
-    m <- newName "m"
     f <- newName "f"
     e <- newName "e"
-    -- instance Monad m => Walkable m ,tName ,paramType where
+    -- instance Walkable ,tName ,paramType where
     --  walk ,f ,e = return ,e
-    return $ InstanceD [ClassP ''Monad [VarT m]]
-                       (foldl AppT (ConT ''Walkable) [VarT m, ConT tName, paramType])
+    return $ InstanceD []
+                       (foldl AppT (ConT ''Walkable) [ConT tName, paramType])
                        [FunD 'walk
                              [Clause [VarP f, VarP e]
                                      (NormalB $ AppE (VarE 'return) (VarE e))
