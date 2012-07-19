@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, ViewPatterns, NoMonomorphismRestriction, RankNTypes #-}
+{-# LANGUAGE TemplateHaskell, ViewPatterns, RankNTypes #-}
 module Walkable.Template where
 
 import Walkable.Class

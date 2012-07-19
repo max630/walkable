@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, MultiParamTypeClasses, FlexibleInstances, ScopedTypeVariables, RankNTypes, FlexibleContexts, NoMonomorphismRestriction #-}
+{-# LANGUAGE TemplateHaskell, MultiParamTypeClasses, Rank2Types, FlexibleContexts #-}
 module Walkable.Exp where
 
 import Walkable.Class
