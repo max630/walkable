@@ -106,12 +106,13 @@ makeSingleWalk walkName tName paramType =
                                     ))) []
                 -}
               -- wType <- lift [t|forall v . Walkable m v $(return paramType) => v -> m v|]
+              cType <- lift [t|Monad m => (forall v . Walkable m v $(return paramType) => v -> m v) -> m $(conT tName)|]
               walkClosure <- lift [|walk $(varE f)  |]
               return $ Just (FunD walkName
                               [
                                 Clause [VarP f, VarP d]
-                                      (NormalB $ AppE (LamE [VarP wC]
-                                                            $ CaseE (VarE d) (map clauseFromtData tDatas))
+                                      (NormalB $ AppE (SigE (LamE [VarP wC] $ CaseE (VarE d) (map clauseFromtData tDatas))
+                                                            cType)
                                                       walkClosure)
                                       []
                               ])
