@@ -19,16 +19,23 @@ import qualified Data.Set as S
 -- * think about not making instances for empties at all, rather copying them in method
 -- ** this might be bad for polymorph case
 -- * make it independent from concrete class (promising?)
--- ** work in progress, refactored makeSingleWalk, makeEmpty still to go, then can start splitting it to core and client code
+-- ** work in progress, refactored makeSingleWalk
+-- ** MOVE d UNDEL LAMBDA, to avoid handling it in template!!! (see the plan)
+-- ** makeEmpty still to go, then can
+-- ** start splitting it to core and client code
 -- * allow transforming a list of toplevel declarations
 
 -- TODO independent from class:
 -- currently there is:
--- instance Monad m => Walkable m ,tName ,paramType where
+-- instance Walkable m ,tName ,paramType where
 --  walk f (C v1 v2) = ... combination of (walk f vN)
 -- what is wanted from template is the "combination" and "tName". All the rest can be submitted by client
 -- (monad context is also mandatory for now)
 -- also, what parameters are added, there can be portion added to the context
+-- the proposed solution is make client provide function
+-- \,typeName ,comb -> (instance .. ,typeName .. where
+--                       walk f d = ,comb (walk f) d)
+-- this way, all class-specific info will be brought completely out of template
 
 -- recurses through types and generates:
 -- ,startName :: {- makeInstances::startFuncType -} Monad m (,paramType -> m ,paramType) -> ,startType -> m ,startType
