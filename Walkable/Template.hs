@@ -21,6 +21,10 @@ import qualified Data.Set as S
 -- * make it independent from concrete class (promising?)
 -- * allow transforming a list of toplevel declarations
 
+-- TODO independent from class:
+-- currently there is:
+-- instance Quasi m => Walkable m ,type ,paramType where
+--  walk f (C v1 v2) = ... combination of (walk f vN)
 makeInstances paramType startType startName empty real ignore = do
   -- TODO: error reporting
   -- ,startName = ..., to put into the handler
