@@ -4,7 +4,6 @@ module Walkable.Exp where
 import Walkable.Class
 import Walkable.Template
 
-import Language.Haskell.TH.Syntax (Quasi)
 import Language.Haskell.TH
 
 $(let hasPrefix s p = take (length p) s == p
@@ -13,5 +12,5 @@ $(let hasPrefix s p = take (length p) s == p
                 (\n -> case nameModule n of {Just s | s `hasPrefix` "Language.Haskell.TH." -> True; _ -> False})
                 (`elem` [''Exp]))
 
-instance (Quasi m) => Walkable m Exp Exp where
+instance (Monad m) => Walkable m Exp Exp where
   walk f e = f e

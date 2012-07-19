@@ -4,7 +4,7 @@ module Walkable.Template where
 import Walkable.Class
 
 import Language.Haskell.TH
-import Language.Haskell.TH.Syntax (Quasi, qRunIO)
+import Language.Haskell.TH.Syntax (qRunIO)
 import Language.Haskell.TH.Ppr (ppr)
 
 import Control.Monad.Writer(tell, runWriterT)
@@ -23,7 +23,7 @@ import qualified Data.Set as S
 
 -- TODO independent from class:
 -- currently there is:
--- instance Quasi m => Walkable m ,type ,paramType where
+-- instance Monad m => Walkable m ,type ,paramType where
 --  walk f (C v1 v2) = ... combination of (walk f vN)
 makeInstances paramType startType startName empty real ignore = do
   -- TODO: error reporting
@@ -94,10 +94,10 @@ makeSingleInstance tName paramType =
   do
     m <- newName "m"
     (decWalk, dependencies) <- runWriterT $ makeSingleWalk 'walk tName
-    -- instance Quasi m => Walkable m ,tName ,paramType where
+    -- instance Monad m => Walkable m ,tName ,paramType where
     --  ,decWalk
     return (fmap  (\d -> InstanceD
-                            [ClassP ''Quasi [VarT m]]
+                            [ClassP ''Monad [VarT m]]
                             (foldl AppT (ConT ''Walkable) [VarT m, ConT tName, paramType])
                             [d])
                   decWalk
@@ -108,9 +108,9 @@ makeEmpty tName paramType =
     m <- newName "m"
     f <- newName "f"
     e <- newName "e"
-    -- instance Quasi m => Walkable m ,tName ,paramType where
+    -- instance Monad m => Walkable m ,tName ,paramType where
     --  walk ,f ,e = return ,e
-    return $ InstanceD [ClassP ''Quasi [VarT m]]
+    return $ InstanceD [ClassP ''Monad [VarT m]]
                        (foldl AppT (ConT ''Walkable) [VarT m, ConT tName, paramType])
                        [FunD 'walk
                              [Clause [VarP f, VarP e]
