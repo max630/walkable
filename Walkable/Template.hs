@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, ViewPatterns #-}
+{-# LANGUAGE TemplateHaskell, ViewPatterns, NoMonomorphismRestriction, RankNTypes #-}
 module Walkable.Template where
 
 import Walkable.Class
@@ -23,12 +23,15 @@ import qualified Data.Set as S
 
 -- TODO independent from class:
 -- currently there is:
--- instance Monad m => Walkable m ,type ,paramType where
+-- instance Monad m => Walkable m ,tName ,paramType where
 --  walk f (C v1 v2) = ... combination of (walk f vN)
+-- what is wanted from template is the "combination" and "tName". All the rest can be submitted by client
+-- (monad context is also mandatory for now)
+-- also, what parameters are added, there can be portion added to the context
 makeInstances paramType startType startName empty real ignore = do
   -- TODO: error reporting
   -- ,startName = ..., to put into the handler
-  (Just startRes, startDeps) <- runWriterT (makeSingleWalk startName startType)
+  (Just startRes, startDeps) <- runWriterT (makeSingleWalk startName startType paramType)
   cycle S.empty [startRes] paramType (S.filter (not . ignore) startDeps)
   where
     cycle done result paramType (S.minView -> Nothing) = return result
@@ -48,7 +51,7 @@ makeInstances paramType startType startName empty real ignore = do
             cycle new_done (result ++ maybeToList inst) paramType (S.union rest filtered_newdeps)
           _ -> fail ("Unknown type: " ++ show next ++ show done)
 
-makeSingleWalk walkName tName =
+makeSingleWalk walkName tName paramType =
   do
     f <- lift $ newName "f"
     td0 <- lift $ reify tName
@@ -63,7 +66,30 @@ makeSingleWalk walkName tName =
                                     v1s <- mapM (\n -> lift $ newName ("v1_" ++ nameBase conName ++ "_" ++ show n)) [1 .. l]
                                     return (conName, v0s, v1s))
                             tcs
+              wC <- lift $ newName "wC" -- walkClosure name
+              d <- lift $ newName "d" -- data
               let
+                -- TODO:
+                -- \ ,f ,d ->
+                --   (\ ,wC -> case ,d of
+                --      (,conName ,v0s[0] ...) -> do
+                --        ,v1s[0], <- ,wC ,v0s[0]
+                --        ...
+                --        return (,conName ,v1s[0] ,v1s[1] ...)
+                --      ...
+                --    ) (walk ,f)
+                clauseFromtData (conName, v0s, v1s) =
+                  Match (ConP conName (map VarP v0s))
+                     (NormalB (DoE (
+                               zipWith (\v0 v1 ->
+                                           BindS (VarP v1)
+                                                 (AppE (VarE wC) (VarE v0)))
+                                        v0s v1s
+                               ++ [NoBindS (AppE (VarE 'return)
+                                                 (foldl AppE (ConE conName) (map VarE v1s)))]
+                             ))) []
+              
+                {-
                 clauseFromtData (conName, v0s, v1s) =
                          -- \ ,f (,conName ,v0s[0] ...) -> do
                          --     ,v1s[0], <- walk ,f ,v0s[0]
@@ -78,7 +104,17 @@ makeSingleWalk walkName tName =
                                       ++ [NoBindS (AppE (VarE 'return)
                                                         (foldl AppE (ConE conName) (map VarE v1s)))]
                                     ))) []
-              return $ Just (FunD walkName (map clauseFromtData tDatas))
+                -}
+              -- wType <- lift [t|forall v . Walkable m v $(return paramType) => v -> m v|]
+              walkClosure <- lift [|walk $(varE f)  |]
+              return $ Just (FunD walkName
+                              [
+                                Clause [VarP f, VarP d]
+                                      (NormalB $ AppE (LamE [VarP wC]
+                                                            $ CaseE (VarE d) (map clauseFromtData tDatas))
+                                                      walkClosure)
+                                      []
+                              ])
       TyConI (TySynD _ [] tp) -> do
               tellTypes tp
               return Nothing
@@ -93,7 +129,7 @@ makeSingleWalk walkName tName =
 makeSingleInstance tName paramType =
   do
     m <- newName "m"
-    (decWalk, dependencies) <- runWriterT $ makeSingleWalk 'walk tName
+    (decWalk, dependencies) <- runWriterT $ makeSingleWalk 'walk tName paramType
     -- instance Monad m => Walkable m ,tName ,paramType where
     --  ,decWalk
     return (fmap  (\d -> InstanceD
