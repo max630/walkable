@@ -19,6 +19,7 @@ import qualified Data.Set as S
 -- * think about not making instances for empties at all, rather copying them in method
 -- ** this might be bad for polymorph case
 -- * make it independent from concrete class (promising?)
+-- ** work in progress, refactored makeSingleWalk, makeEmpty still to go, then can start splitting it to core and client code
 -- * allow transforming a list of toplevel declarations
 
 -- TODO independent from class:
@@ -30,7 +31,8 @@ import qualified Data.Set as S
 -- also, what parameters are added, there can be portion added to the context
 makeInstances paramType startType startName empty real ignore = do
   -- TODO: error reporting
-  -- ,startName = ..., to put into the handler
+  -- ,startName :: startFuncType
+  -- ,startName = ...
   startFuncType <- [t|Monad m => ($(return paramType) -> m $(return paramType)) -> $(conT startType) -> m $(conT startType)|]
   (Just startRes, startDeps) <- runWriterT (makeSingleWalk startName startType paramType)
   cycle S.empty [SigD startName startFuncType, startRes] paramType (S.filter (not . ignore) startDeps)
@@ -70,15 +72,10 @@ makeSingleWalk walkName tName paramType =
               wC <- lift $ newName "wC" -- walkClosure name
               d <- lift $ newName "d" -- data
               let
-                -- TODO:
-                -- \ ,f ,d ->
-                --   (\ ,wC -> case ,d of
-                --      (,conName ,v0s[0] ...) -> do
-                --        ,v1s[0], <- ,wC ,v0s[0]
-                --        ...
-                --        return (,conName ,v1s[0] ,v1s[1] ...)
-                --      ...
-                --    ) (walk ,f)
+                -- (,conName ,v0s[0] ...) -> do
+                --   ,v1s[0], <- ,wC ,v0s[0]
+                --   ...
+                --   return (,conName ,v1s[0] ,v1s[1] ...)
                 clauseFromtData (conName, v0s, v1s) =
                   Match (ConP conName (map VarP v0s))
                      (NormalB (DoE (
@@ -89,26 +86,12 @@ makeSingleWalk walkName tName paramType =
                                ++ [NoBindS (AppE (VarE 'return)
                                                  (foldl AppE (ConE conName) (map VarE v1s)))]
                              ))) []
-              
-                {-
-                clauseFromtData (conName, v0s, v1s) =
-                         -- \ ,f (,conName ,v0s[0] ...) -> do
-                         --     ,v1s[0], <- walk ,f ,v0s[0]
-                         --     ...
-                         --     return (,conName ,v1s[0] ,v1s[1] ...)
-                         Clause [VarP f, ConP conName (map VarP v0s)]
-                            (NormalB (DoE (
-                                      zipWith (\v0 v1 ->
-                                                  BindS (VarP v1)
-                                                        (foldl AppE (VarE 'walk) [VarE f, VarE v0]))
-                                               v0s v1s
-                                      ++ [NoBindS (AppE (VarE 'return)
-                                                        (foldl AppE (ConE conName) (map VarE v1s)))]
-                                    ))) []
-                -}
-              -- wType <- lift [t|forall v . Walkable v $(return paramType) => v -> m v|]
               cType <- lift [t|Monad m => (forall v . Walkable v $(return paramType) => v -> m v) -> m $(conT tName)|]
               walkClosure <- lift [|walk $(varE f)  |]
+              -- \ ,f ,d ->
+              --   ((\ ,wC -> case ,d of
+              --      ...
+              --    ) :: ,cType) (walk ,f)
               return $ Just (FunD walkName
                               [
                                 Clause [VarP f, VarP d]
@@ -128,6 +111,7 @@ makeSingleWalk walkName tName paramType =
     tellTypes ListT = return ()
     tellTypes (TupleT _) = return ()
 
+-- TODO: make the same as for real
 makeSingleInstance tName paramType =
   do
     (decWalk, dependencies) <- runWriterT $ makeSingleWalk 'walk tName paramType
