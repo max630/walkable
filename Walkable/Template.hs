@@ -60,7 +60,8 @@ import qualified Data.Set as S
 makeInstances paramType startType startName empty real ignore = do
   -- TODO: error reporting
   startFuncType <- [t|Monad m => ($(return paramType) -> m $(return paramType)) -> $(conT startType) -> m $(conT startType)|]
-  (Just startRes, startDeps) <- runWriterT (makeSingleWalk startName startType paramType)
+  (Just startLambda, startDeps) <- runWriterT (makeTraverseLambda startType)
+  startRes <- makeSingleWalk startLambda startName startType paramType
   cycle S.empty [SigD startName startFuncType, startRes] paramType (S.filter (not . ignore) startDeps)
   where
     cycle done result paramType (S.minView -> Nothing) = return result
@@ -80,16 +81,12 @@ makeInstances paramType startType startName empty real ignore = do
             cycle new_done (result ++ maybeToList inst) paramType (S.union rest filtered_newdeps)
           _ -> fail ("Unknown type: " ++ show next ++ show done)
 
-makeSingleWalk walkName tName paramType =
+makeSingleWalk lambda walkName tName paramType =
   do
-    lM <- makeTraverseLambda tName
-    case lM of
-      Nothing -> return Nothing
-      Just lambda -> do
-        f <- lift $ newName "f"
-        cType <- lift [t|Monad m => (forall v . Walkable v $(return paramType) => v -> m v) -> $(conT tName) -> m $(conT tName)|]
-        walkClosure <- lift [|walk $(varE f)  |]
-        return $ Just (FunD walkName [Clause [VarP f] (NormalB $ AppE (SigE lambda cType) walkClosure) []])
+    f <- newName "f"
+    cType <- [t|Monad m => (forall v . Walkable v $(return paramType) => v -> m v) -> $(conT tName) -> m $(conT tName)|]
+    walkClosure <- [|walk $(varE f)  |]
+    return $ FunD walkName [Clause [VarP f] (NormalB $ AppE (SigE lambda cType) walkClosure) []]
 
 makeTraverseLambda tName = do
   td0 <- lift $ reify tName
@@ -131,7 +128,11 @@ makeTraverseLambda tName = do
 
 makeSingleInstance tName paramType =
   do
-    (decWalk, dependencies) <- runWriterT $ makeSingleWalk 'walk tName paramType
+    (decWalk, dependencies) <- runWriterT $ do
+      r <- makeTraverseLambda tName
+      case r of
+        Nothing -> return Nothing
+        Just l -> fmap Just $ lift $ makeSingleWalk l 'walk tName paramType
     return (fmap  (\d -> InstanceD
                             []
                             (foldl AppT (ConT ''Walkable) [ConT tName, paramType])
