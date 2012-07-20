@@ -51,7 +51,7 @@ import qualified Data.Set as S
 --                    ...
 --                    return (,conName ,v1s[0] ,v1s[1] ...)
 --                    ...
---                  ) :: {- makeSingleWalk::cType -} Monad m (forall v . Walkable v => v -> m v) -> ,tName -> m ,tName) (walk ,f)
+--                  ) :: {- makeSingleWalk::cType -} Monad m (forall v . Walkable v paramType => v -> m v) -> ,tName -> m ,tName) (walk ,f)
 --
 -- {- makeEmpty -}
 -- instance Walkable ,tName ,paramType where
