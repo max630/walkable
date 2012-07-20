@@ -82,46 +82,46 @@ makeInstances paramType startType startName empty real ignore = do
 
 makeSingleWalk walkName tName paramType =
   do
-    f <- lift $ newName "f"
-    td0 <- lift $ reify tName
-    case td0 of
-      TyConI (DataD [] _ [] tcs []) -> do
-              tDatas <- mapM (\ (NormalC conName conTypes) ->
-                                  do
-                                    mapM (\(_,t) -> tellTypes t) conTypes
-                                    let
-                                      l = length conTypes
-                                    v0s <- mapM (\n -> lift $ newName ("v0_" ++ nameBase conName ++ "_" ++ show n)) [1 .. l]
-                                    v1s <- mapM (\n -> lift $ newName ("v1_" ++ nameBase conName ++ "_" ++ show n)) [1 .. l]
-                                    return (conName, v0s, v1s))
-                            tcs
-              wC <- lift $ newName "wC" -- walkClosure name
-              d <- lift $ newName "d" -- data
-              let
-                clauseFromtData (conName, v0s, v1s) =
-                  Match (ConP conName (map VarP v0s))
-                     (NormalB (DoE (
-                               zipWith (\v0 v1 ->
-                                           BindS (VarP v1)
-                                                 (AppE (VarE wC) (VarE v0)))
-                                        v0s v1s
-                               ++ [NoBindS (AppE (VarE 'return)
-                                                 (foldl AppE (ConE conName) (map VarE v1s)))]
-                             ))) []
-              cType <- lift [t|Monad m => (forall v . Walkable v $(return paramType) => v -> m v) -> $(conT tName) -> m $(conT tName)|]
-              walkClosure <- lift [|walk $(varE f)  |]
-              return $ Just (FunD walkName
-                              [
-                                Clause [VarP f]
-                                      (NormalB $ AppE (SigE (LamE [VarP wC, VarP d] $ CaseE (VarE d) (map clauseFromtData tDatas))
-                                                            cType)
-                                                      walkClosure)
-                                      []
-                              ])
-      TyConI (TySynD _ [] tp) -> do
-              tellTypes tp
-              return Nothing
-      _ -> fail ("not a supported declaration: " ++ show td0)
+    lM <- makeTraverseLambda tName
+    case lM of
+      Nothing -> return Nothing
+      Just lambda -> do
+        f <- lift $ newName "f"
+        cType <- lift [t|Monad m => (forall v . Walkable v $(return paramType) => v -> m v) -> $(conT tName) -> m $(conT tName)|]
+        walkClosure <- lift [|walk $(varE f)  |]
+        return $ Just (FunD walkName [Clause [VarP f] (NormalB $ AppE (SigE lambda cType) walkClosure) []])
+
+makeTraverseLambda tName = do
+  td0 <- lift $ reify tName
+  case td0 of
+    TyConI (DataD [] _ [] tcs []) -> do
+            tDatas <- mapM (\ (NormalC conName conTypes) ->
+                                do
+                                  mapM (\(_,t) -> tellTypes t) conTypes
+                                  let
+                                    l = length conTypes
+                                  v0s <- mapM (\n -> lift $ newName ("v0_" ++ nameBase conName ++ "_" ++ show n)) [1 .. l]
+                                  v1s <- mapM (\n -> lift $ newName ("v1_" ++ nameBase conName ++ "_" ++ show n)) [1 .. l]
+                                  return (conName, v0s, v1s))
+                          tcs
+            wC <- lift $ newName "wC" -- walkClosure name
+            d <- lift $ newName "d" -- data
+            let
+              clauseFromtData (conName, v0s, v1s) =
+                Match (ConP conName (map VarP v0s))
+                   (NormalB (DoE (
+                             zipWith (\v0 v1 ->
+                                         BindS (VarP v1)
+                                               (AppE (VarE wC) (VarE v0)))
+                                      v0s v1s
+                             ++ [NoBindS (AppE (VarE 'return)
+                                               (foldl AppE (ConE conName) (map VarE v1s)))]
+                           ))) []
+            return $ Just (LamE [VarP wC, VarP d] $ CaseE (VarE d) (map clauseFromtData tDatas))
+    TyConI (TySynD _ [] tp) -> do
+            tellTypes tp
+            return Nothing
+    _ -> fail ("not a supported declaration: " ++ show td0)
   where
     tellTypes (AppT t1 t2) = tellTypes t1 >> tellTypes t2
     tellTypes (ConT n) | elem n [''Maybe, ''[], ''(,)] = return ()
