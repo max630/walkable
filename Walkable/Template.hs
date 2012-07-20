@@ -19,8 +19,8 @@ import qualified Data.Set as S
 -- * think about not making instances for empties at all, rather copying them in method
 -- ** this might be bad for polymorph case
 -- * make it independent from concrete class (promising?)
--- ** work in progress, refactored makeSingleWalk
--- ** MOVE d UNDEL LAMBDA, to avoid handling it in template!!! (see the plan)
+-- ** (+) work in progress, refactored makeSingleWalk
+-- ** (+) MOVE d UNDEL LAMBDA, to avoid handling it in template!!! (see the plan)
 -- ** makeEmpty still to go, then can
 -- ** start splitting it to core and client code
 -- * allow transforming a list of toplevel declarations
@@ -44,14 +44,14 @@ import qualified Data.Set as S
 -- {- makeSingleInstance -}
 -- instance Walkable ,tName ,paramType where
 --  {- makeSingleWalk -} 
---  walk ,f ,d = ((\,wC -> case ,d of
+--  walk ,f = ((\,wC ,d -> case ,d of
 --                  {- makeSingleWalk::clauseFromtData -}
 --                  (,conName ,v0s[0] ...) -> do
 --                    ,v1s[0], <- ,wC ,v0s[0]
 --                    ...
 --                    return (,conName ,v1s[0] ,v1s[1] ...)
 --                    ...
---                  ) :: {- makeSingleWalk::cType -} Monad m (forall v . Walkable v => v -> m v) -> m ,tName) (walk ,f)
+--                  ) :: {- makeSingleWalk::cType -} Monad m (forall v . Walkable v => v -> m v) -> ,tName -> m ,tName) (walk ,f)
 --
 -- {- makeEmpty -}
 -- instance Walkable ,tName ,paramType where
@@ -108,12 +108,12 @@ makeSingleWalk walkName tName paramType =
                                ++ [NoBindS (AppE (VarE 'return)
                                                  (foldl AppE (ConE conName) (map VarE v1s)))]
                              ))) []
-              cType <- lift [t|Monad m => (forall v . Walkable v $(return paramType) => v -> m v) -> m $(conT tName)|]
+              cType <- lift [t|Monad m => (forall v . Walkable v $(return paramType) => v -> m v) -> $(conT tName) -> m $(conT tName)|]
               walkClosure <- lift [|walk $(varE f)  |]
               return $ Just (FunD walkName
                               [
-                                Clause [VarP f, VarP d]
-                                      (NormalB $ AppE (SigE (LamE [VarP wC] $ CaseE (VarE d) (map clauseFromtData tDatas))
+                                Clause [VarP f]
+                                      (NormalB $ AppE (SigE (LamE [VarP wC, VarP d] $ CaseE (VarE d) (map clauseFromtData tDatas))
                                                             cType)
                                                       walkClosure)
                                       []
