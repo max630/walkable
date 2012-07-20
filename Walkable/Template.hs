@@ -12,6 +12,8 @@ import Control.Monad.Trans(lift)
 
 import Data.Maybe(maybeToList)
 
+import qualified Data.Traversable as T
+
 import qualified Data.Set as S
 
 -- TODO:
@@ -128,11 +130,7 @@ makeTraverseLambda tName = do
 
 makeSingleInstance tName paramType =
   do
-    (decWalk, dependencies) <- runWriterT $ do
-      r <- makeTraverseLambda tName
-      case r of
-        Nothing -> return Nothing
-        Just l -> fmap Just $ lift $ makeSingleWalk l 'walk tName paramType
+    (decWalk, dependencies) <- runWriterT (makeTraverseLambda tName >>= T.mapM (\l -> lift $ makeSingleWalk l 'walk tName paramType))
     return (fmap  (\d -> InstanceD
                             []
                             (foldl AppT (ConT ''Walkable) [ConT tName, paramType])
