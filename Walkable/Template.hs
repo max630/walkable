@@ -43,6 +43,7 @@ import qualified Data.Set as S
 -- ,startName :: {- makeInstances::startFuncType -} Monad m (,paramType -> m ,paramType) -> ,startType -> m ,startType
 -- ,startName = .. same as makeSingleWalk
 --
+-- NB: refactoring in process!!! might be obsolete
 -- {- makeSingleInstance -}
 -- instance Walkable ,tName ,paramType where
 --  {- makeSingleWalk -} 
