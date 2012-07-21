@@ -75,8 +75,9 @@ makeInstances paramType startType startName empty real ignore = do
             qRunIO $ putStrLn ("Done empty: " ++ show (ppr next))
             cycle (S.insert next done) (result ++ [inst]) paramType rest
           _ | real next -> do
-            (inst, newdeps) <- makeSingleInstance next paramType
-            qRunIO $ putStrLn ("Done recurse: " ++ show (ppr next) ++ maybe " (no instance)" (const "") inst)
+            (lambdaMb, newdeps) <- runWriterT $ makeTraverseLambda next
+            inst <- T.mapM (\l -> makeSingleInstance l next paramType) lambdaMb
+            qRunIO $ putStrLn ("Done recurse: " ++ show (ppr next) ++ maybe " (no instance)" (const "") lambdaMb)
             let
               new_done = S.insert next done
               filtered_newdeps = (`S.difference` new_done) $ S.filter (not . ignore) newdeps
@@ -128,15 +129,10 @@ makeTraverseLambda tName = do
     tellTypes ListT = return ()
     tellTypes (TupleT _) = return ()
 
-makeSingleInstance tName paramType =
+makeSingleInstance lambda tName paramType =
   do
-    (decWalk, dependencies) <- runWriterT (makeTraverseLambda tName >>= T.mapM (\l -> lift $ makeSingleWalk l 'walk tName paramType))
-    return (fmap  (\d -> InstanceD
-                            []
-                            (foldl AppT (ConT ''Walkable) [ConT tName, paramType])
-                            [d])
-                  decWalk
-           , dependencies)
+    decWalk <- makeSingleWalk lambda 'walk tName paramType
+    return $ InstanceD [] (foldl AppT (ConT ''Walkable) [ConT tName, paramType]) [decWalk]
 
 -- TODO: make the same as for real
 makeEmpty tName paramType =
