@@ -72,7 +72,8 @@ makeInstances paramType startType startName empty real ignore = do
       do
         case () of
           _ | empty next -> do
-            inst <- makeEmpty next paramType
+            lambda <- makeTrivialLambda
+            inst <- makeSingleInstance lambda next paramType
             qRunIO $ putStrLn ("Done empty: " ++ show (ppr next))
             cycle (S.insert next done) (result ++ [inst]) paramType rest
           _ | real next -> do
@@ -135,14 +136,4 @@ makeSingleInstance lambda tName paramType =
     decWalk <- makeSingleWalk lambda 'walk tName paramType
     return $ InstanceD [] (foldl AppT (ConT ''Walkable) [ConT tName, paramType]) [decWalk]
 
--- TODO: make the same as for real
-makeEmpty tName paramType =
-  do
-    f <- newName "f"
-    e <- newName "e"
-    return $ InstanceD []
-                       (foldl AppT (ConT ''Walkable) [ConT tName, paramType])
-                       [FunD 'walk
-                             [Clause [VarP f, VarP e]
-                                     (NormalB $ AppE (VarE 'return) (VarE e))
-                                     []]]
+makeTrivialLambda = [|\_ d -> return d|]
