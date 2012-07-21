@@ -68,10 +68,11 @@ import Control.Monad.Writer(WriterT)
 
 
 makeInstances paramType startType startName empty real ignore = do
+  ([startLambda], instancesInfo) <- makeTraverseInfo [startName] empty real ignore
   -- TODO: error reporting
   startFuncType <- [t|Monad m => ($(return paramType) -> m $(return paramType)) -> $(conT startType) -> m $(conT startType)|]
-  (Just startLambda, startDeps) <- runWriterT (makeTraverseLambda startType)
   startRes <- makeSingleWalk startLambda startName startType paramType
+  instances <- mapM (\make) instancesInfo
   cycle S.empty [SigD startName startFuncType, startRes] paramType (S.filter (not . ignore) startDeps)
   where
     cycle done result paramType (S.minView -> Nothing) = return result
