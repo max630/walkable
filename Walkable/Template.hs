@@ -16,6 +16,9 @@ import qualified Data.Traversable as T
 
 import qualified Data.Set as S
 
+-- RM: types
+import Control.Monad.Writer(WriterT)
+
 -- TODO:
 -- * make empty also not producing, censor empties
 -- * think about not making instances for empties at all, rather copying them in method
@@ -68,23 +71,21 @@ makeInstances paramType startType startName empty real ignore = do
   cycle S.empty [SigD startName startFuncType, startRes] paramType (S.filter (not . ignore) startDeps)
   where
     cycle done result paramType (S.minView -> Nothing) = return result
-    cycle done result paramType todo@(S.minView -> Just (next, rest)) =
-      do
-        case () of
-          _ | empty next -> do
-            lambda <- makeTrivialLambda
-            inst <- makeSingleInstance lambda next paramType
-            qRunIO $ putStrLn ("Done empty: " ++ show (ppr next))
-            cycle (S.insert next done) (result ++ [inst]) paramType rest
-          _ | real next -> do
-            (lambdaMb, newdeps) <- runWriterT $ makeTraverseLambda next
-            inst <- T.mapM (\l -> makeSingleInstance l next paramType) lambdaMb
-            qRunIO $ putStrLn ("Done recurse: " ++ show (ppr next) ++ maybe " (no instance)" (const "") lambdaMb)
-            let
-              new_done = S.insert next done
-              filtered_newdeps = (`S.difference` new_done) $ S.filter (not . ignore) newdeps
-            cycle new_done (result ++ maybeToList inst) paramType (S.union rest filtered_newdeps)
-          _ -> fail ("Unknown type: " ++ show next ++ show done)
+    cycle done result paramType todo@(S.minView -> Just (next, rest)) = do
+      (lambdaMb, newdeps) <- runWriterT $ makeLambda next empty real
+      inst <- T.mapM (\l -> makeSingleInstance l next paramType) lambdaMb
+      qRunIO $ putStrLn ("Done lambda: " ++ show (ppr next) ++ maybe " (no instance)" (const "") lambdaMb)
+      let
+        new_done = S.insert next done
+        filtered_newdeps = (`S.difference` new_done) $ S.filter (not . ignore) newdeps
+      cycle new_done (result ++ maybeToList inst) paramType (S.union rest filtered_newdeps)
+
+makeLambda :: Name -> (Name -> Bool) -> (Name -> Bool) -> WriterT (S.Set Name) Q (Maybe Exp)
+makeLambda tName empty real
+  | empty tName = lift $ fmap Just $ makeTrivialLambda
+  | real tName = makeTraverseLambda tName
+  | True = fail ("Unknown type: " ++ show tName)
+
 
 makeSingleWalk lambda walkName tName paramType =
   do
