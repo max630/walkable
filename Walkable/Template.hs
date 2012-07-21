@@ -41,6 +41,7 @@ import Control.Monad.Writer(WriterT)
 -- \,typeName ,comb -> (instance .. ,typeName .. where
 --                       walk f d = ,comb (walk f) d)
 -- this way, all class-specific info will be brought completely out of template
+--
 
 -- recurses through types and generates:
 -- ,startName :: {- makeInstances::startFuncType -} Monad m (,paramType -> m ,paramType) -> ,startType -> m ,startType
@@ -63,6 +64,9 @@ import Control.Monad.Writer(WriterT)
 -- instance Walkable ,tName ,paramType where
 --  walk ,f ,e = return ,e
 --
+
+
+
 makeInstances paramType startType startName empty real ignore = do
   -- TODO: error reporting
   startFuncType <- [t|Monad m => ($(return paramType) -> m $(return paramType)) -> $(conT startType) -> m $(conT startType)|]
@@ -79,6 +83,24 @@ makeInstances paramType startType startName empty real ignore = do
         new_done = S.insert next done
         filtered_newdeps = (`S.difference` new_done) $ S.filter (not . ignore) newdeps
       cycle new_done (result ++ maybeToList inst) paramType (S.union rest filtered_newdeps)
+
+makeTraverseInfo :: [Name] -> (Name -> Bool) -> (Name -> Bool) -> (Name -> Bool)
+                    -> Q ([Exp], [(Type, Exp)])
+makeTraverseInfo startTypeNames empty real ignore = do
+  (startLambdas, startDeps) <- runWriterT $ mapM (\n -> makeTraverseLambda n >>= unMaybe n) startTypeNames
+  instances <- cycle S.empty [] (S.filter (not . ignore) startDeps)
+  return (startLambdas, instances)
+  where
+    unMaybe _ (Just v) = return v
+    unMaybe n Nothing = fail ("No traverse lambda for: " ++ show n)
+    cycle done result (S.minView -> Nothing) = return result
+    cycle done result todo@(S.minView -> Just (next, rest)) = do
+      (lambdaMb, newdeps) <- runWriterT $ makeLambda next empty real
+      qRunIO $ putStrLn ("Done lambda: " ++ show (ppr next) ++ maybe " (no instance)" (const "") lambdaMb)
+      let
+        new_done = S.insert next done
+        filtered_newdeps = (`S.difference` new_done) $ S.filter (not . ignore) newdeps
+      cycle new_done (result ++ zip [ConT next] (maybeToList lambdaMb)) (S.union rest filtered_newdeps)
 
 makeLambda :: Name -> (Name -> Bool) -> (Name -> Bool) -> WriterT (S.Set Name) Q (Maybe Exp)
 makeLambda tName empty real
