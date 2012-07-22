@@ -20,9 +20,36 @@ import qualified Data.Set as S
 -- * doc
 -- * ability to handle parametrized types
 
--- TODO: document
-makeTraverseInfo :: [Name] -> (Name -> Bool) -> (Name -> Bool) -> (Name -> Bool)
-                    -> Q ([Exp], [(Name, Exp)])
+{-|
+  Returns building blocks for building a hierarchy of instances.
+
+  See an example in 'Walkable.Exp.walkExpImpl'
+
+  The main building block is lambda expression @\ recurse arg -> ...@,
+  which decomposes @arg@ to fields, applies @recurse@ to each, and combines it back.
+  To use it to implement traversing instance or start functions, apply it to
+  closure containing the traversing class method.
+  The closure must be polymorthic by the @arg@ type, and instance must exist for it.
+  Usually explicit type declaration are required to help typechecker.
+
+  The return type is @(startLabmdas, instancesInfo)@, where each element in @startLabmdas@
+  returns lambda for corresponding element of start type names given to the function.
+  @instancesInfo@ is a list of @(typeName, typeLambda)@ pairs, which should be used
+  to define an instance for the named type with the corresponding instance.
+
+  First @ignore@ is checked, then @empty@, and the last is @real@. If all fails, error is reported.
+
+  Ignored instanced are just skipped from generation, they still might be (and usually are) required.
+  Usually this means that you define instances manually. Start types are ignored also.
+
+  Empty instances just copy data argument. Use it for types you are not going to modify,
+  because it is not needed of not possible to implement.
+ -}
+makeTraverseInfo :: [Name] -- ^ list of start type names to start with
+                  -> (Name -> Bool) -- ^ if evaluates to true, instance just copies its argument
+                  -> (Name -> Bool) -- ^ if evaluates to true, instance recuces to fields
+                  -> (Name -> Bool) -- ^ if evaluates to true, type is ignored at all
+                  -> Q ([Exp], [(Name, Exp)])
 makeTraverseInfo startTypeNames empty real ignore = do
   (startLambdas, startDeps) <- runWriterT $ mapM (\n -> makeTraverseLambda n >>= unMaybe n) startTypeNames
   instances <- cycle S.empty [] (S.filter (not . ignore) startDeps)
@@ -45,6 +72,7 @@ makeLambda tName empty real
   | real tName = makeTraverseLambda tName
   | True = fail ("Unknown type: " ++ show tName)
 
+-- TODO: document
 makeTraverseLambda :: Name -> WriterT (S.Set Name) Q (Maybe Exp)
 makeTraverseLambda tName = do
   td0 <- lift $ reify tName
