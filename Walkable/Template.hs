@@ -13,11 +13,12 @@ import Data.Maybe(maybeToList)
 import qualified Data.Set as S
 
 -- TODO:
--- * make empty also not producing, censor empties
 -- * think about not making instances for empties at all, rather copying them in method
 -- ** this might be bad for polymorph case
 -- * (+) make it independent from concrete class (promising?)
--- * allow transforming a list of toplevel declarations
+-- * allow transforming a list of toplevel declarations (this one in Exp)
+-- * doc
+-- * ability to handle parametrized types
 
 -- TODO: document
 makeTraverseInfo :: [Name] -> (Name -> Bool) -> (Name -> Bool) -> (Name -> Bool)
