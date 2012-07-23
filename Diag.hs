@@ -16,47 +16,47 @@ import Control.Monad (zipWithM)
 import System.IO.Unsafe(unsafePerformIO)
 import ExtractIO (io, handleIO)
 
-get a i =
-  do
-    vr <- readArray a i
-    (_,v) <- readIORef vr
-    return v
+$(handleIO [d|
+  get a i =
+    do
+      vr <- readArray a i
+      (_,v) <- readIORef vr
+      return v
 
-writeElem a i vr =
-  do
-    (_, v) <- readIORef vr
-    writeIORef vr (i, v)
-    writeArray a i vr
+  writeElem a i vr =
+    do
+      (_, v) <- readIORef vr
+      writeIORef vr (i, v)
+      writeArray a i vr
 
-moveUp a iOld iNew =
-  do
-    vrM <- readArray a iOld
-    sequence_ (map (\i -> readArray a i >>= writeElem a (i - 1)) [(iOld + 1) .. iNew])
-    writeElem a iNew vrM
+  moveUp a iOld iNew =
+    do
+      vrM <- readArray a iOld
+      sequence_ (map (\i -> readArray a i >>= writeElem a (i - 1)) [(iOld + 1) .. iNew])
+      writeElem a iNew vrM
 
-moveDown a iOld iNew =
-  do
-    vrM <- readArray a iOld
-    sequence_ (map (\i -> readArray a i >>= writeElem a (i + 1)) (reverse [iNew .. (iOld - 1)]))
-    writeElem a iNew vrM
+  moveDown a iOld iNew =
+    do
+      vrM <- readArray a iOld
+      sequence_ (map (\i -> readArray a i >>= writeElem a (i + 1)) (reverse [iNew .. (iOld - 1)]))
+      writeElem a iNew vrM
 
-solve l =
-  do
-    let s = length l
-    l'' <- zipWithM (\x i -> newIORef (i,x)) l [1 .. s]
-    a <- (newListArray (1, s) l'' :: IO (IOArray Int (IORef (Int, Int))))
-    let l' = sortBy (\vr1 vr2 -> unsafePerformIO (do {
-                                                      (_,v1) <- readIORef vr1;
-                                                      (_,v2) <- readIORef vr2;
-                                                      return $ compare v1 v2}))
-                    l''
-    step l' a 0
+  solve l =
+    do
+      let s = length l
+      l'' <- zipWithM (\x i -> newIORef (i,x)) l [1 .. s]
+      a <- (newListArray (1, s) l'' :: IO (IOArray Int (IORef (Int, Int))))
+      let l' = sortBy (\vr1 vr2 -> unsafePerformIO (do {
+                                                        (_,v1) <- readIORef vr1;
+                                                        (_,v2) <- readIORef vr2;
+                                                        return $ compare v1 v2}))
+                      l''
+      step l' a 0
 
 -- need ot be stable sorted
 
-step [] _ sum = return sum
-step (next : l) a sum =
-  $(handleIO [|
+  step [] _ sum = return sum
+  step (next : l) a sum =
     do
       putStrLn ("step, sum:" ++ show sum ++ ", nexts:")
       nexts <- mapM readIORef (next : l)
@@ -84,14 +84,14 @@ step (next : l) a sum =
                   Just iZ <- findM (\i -> do {return (getP (io $ get a i) > pM)}) (reverse [1 .. (pM - 1)])
                   moveUp a iZ (pM + 1)
                   step l a (sum' + (pM + 1 - iZ))
-    |])
 
-getP = id -- TODO: change it with actual
+  getP = id -- TODO: change it with actual
 
-findM p [] = return Nothing
-findM p (x:xs) =
-  do
-    r <- p x
-    if r
-      then return (Just x)
-      else findM p xs
+  findM p [] = return Nothing
+  findM p (x:xs) =
+    do
+      r <- p x
+      if r
+        then return (Just x)
+        else findM p xs
+  |])

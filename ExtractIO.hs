@@ -51,7 +51,7 @@ handleIO mainEQ =
           bindB (name, e) = BindS (VarP name) e
       handleIOf e = walkExpImpl handleIOf e
     mainE <- mainEQ
-    (mainE', _) <- runWriterT (handleIOf mainE)
+    (mainE', _) <- runWriterT (walk handleIOf mainE)
     return mainE'
 
 

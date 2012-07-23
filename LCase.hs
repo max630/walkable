@@ -25,4 +25,4 @@ handleLCaseF exp = walkExpImpl handleLCaseF exp
 
 handleLCase expQ = do
   exp <- expQ
-  handleLCaseF exp
+  walk handleLCaseF exp
