@@ -9,6 +9,7 @@ import Control.Monad.Writer(WriterT, tell, runWriterT)
 import Control.Monad.Trans(lift)
 
 import Data.Maybe(maybeToList)
+import Data.List(intersperse)
 
 import qualified Data.Set as S
 
@@ -80,6 +81,8 @@ makeTraverseLambda tName = do
     TyConI (DataD [] _ [] tcs []) -> do
             tDatas <- mapM (\ (NormalC conName conTypes) ->
                                 do
+                                  lift $ qRunIO $ putStrLn ("Traversing constructor: " ++ show conName ++ " "
+                                                ++ concat (intersperse " " (map (\(_,t ) -> show t) conTypes)))
                                   mapM (\(_,t) -> tellTypes t) conTypes
                                   let
                                     l = length conTypes
@@ -104,7 +107,7 @@ makeTraverseLambda tName = do
     TyConI (TySynD _ [] tp) -> do
             tellTypes tp
             return Nothing
-    _ -> fail ("not a supported declaration: " ++ show td0)
+    _ -> fail ("not a supported declaration for " ++ show tName ++ ": " ++ show td0)
   where
     tellTypes (AppT t1 t2) = tellTypes t1 >> tellTypes t2
     tellTypes (ConT n) | elem n [''Maybe, ''[], ''(,)] = return ()
