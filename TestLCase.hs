@@ -1,13 +1,10 @@
 {-# LANGUAGE TemplateHaskell #-}
-module TestLCase where
+module TestLCase where {
 
-import LCase
+import LCase;
 
-$(handleLCase [d|
+handleLCase [d|
 
+f = lcase [\0 -> 0, \n -> n * f (n - 1)];
 
- f = lcase [\0 -> 0, \n -> n * f (n - 1)]
-
-
-
- |])
+|] }
