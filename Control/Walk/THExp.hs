@@ -7,11 +7,13 @@ import Control.Walk.Class
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax(NameFlavour, OccName)
 
+import Data.Word (Word8)
+
 $(let hasPrefix s p = take (length p) s == p
   in do
     ([walkExpImplLambda], instancesInfo) <-
       makeTraverseInfo [''Exp]
-                      (`elem` [''String, ''Rational, ''Char, ''Integer, ''Int, ''NameFlavour, ''Bool, ''OccName])
+                      (`elem` [''String, ''Rational, ''Char, ''Integer, ''Int, ''Word8, ''NameFlavour, ''Bool, ''OccName])
                       (\n -> case nameModule n of {Just s | s `hasPrefix` "Language.Haskell.TH." -> True; _ -> False})
                       (`elem` [''Exp, ''String])
     walkExpImplDec <- [d|
