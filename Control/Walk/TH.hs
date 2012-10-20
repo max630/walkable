@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell, ViewPatterns, RankNTypes #-}
-module Walkable.Template (makeTraverseInfo, makeTraverseLambda) where
+module Control.Walk.TH (makeTraverseInfo, makeTraverseLambda) where
 
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (qRunIO)

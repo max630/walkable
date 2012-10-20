@@ -1,8 +1,8 @@
 {-# LANGUAGE TemplateHaskell, MultiParamTypeClasses, Rank2Types, FlexibleContexts, FlexibleInstances #-}
-module Walkable.Exp where
+module Control.Walk.THExp where
 
-import Walkable.Class
-import Walkable.Template
+import Control.Walk.TH
+import Control.Walk.Class
 
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax(NameFlavour, OccName)

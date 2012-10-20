@@ -18,6 +18,6 @@ Description:
 
 
 Library
-  Exposed-modules: Walkable.Class, Walkable.Template, Walkable.Exp
+  Exposed-modules: Control.Walk.Class, Control.Walk.TH, Control.Walk.THExp
   Build-depends: base, mtl, template-haskell, containers
   

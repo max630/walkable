@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
-module Walkable.Class where
+module Control.Walk.Class where
 
 import Control.Monad (liftM)
 
