@@ -1,5 +1,5 @@
 {-# LANGUAGE NoMonomorphismRestriction, TemplateHaskell #-}
-module Diag where
+module Examples.Diag where
 
 {-
 
@@ -8,13 +8,14 @@ Idea: go through
 
 -}
 
+import Examples.ExtractIO (io, handleIO)
+
 import Data.Array.MArray (newListArray, readArray, writeArray, getElems)
 import Data.Array.IO (IOArray)
 import Data.IORef (readIORef, writeIORef, newIORef, IORef)
 import Data.List (sortBy)
 import Control.Monad (zipWithM)
 import System.IO.Unsafe(unsafePerformIO)
-import ExtractIO (io, handleIO)
 
 $(handleIO [d|
   get a i =

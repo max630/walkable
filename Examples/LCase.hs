@@ -1,10 +1,11 @@
 {-# LANGUAGE TemplateHaskell, NoMonomorphismRestriction #-}
-module LCase where
+module Examples.LCase where
 
 import Language.Haskell.TH
-import Walkable (walk, walkExpImpl)
-
 import Control.Monad(liftM)
+
+import Control.Walk.Class (walk)
+import Control.Walk.THExp (walkExpImpl)
 
 lcase :: [a -> b] -> a -> b
 lcase = undefined

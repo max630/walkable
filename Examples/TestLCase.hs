@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
-module TestLCase where {
+module Examples.TestLCase where {
 
-import LCase;
+import Examples.LCase;
 
 handleLCase [d|
 
