@@ -1,7 +1,7 @@
 Name:                walk-template
 Version:             0.2
 Synopsis:            Class and template to modify a hierarchy of data types
-Homepage:            http://vs1.max630.info/repos/th-walk.git/
+Homepage:            https://github.com/max630/walk-template
 License:             BSD3
 License-file:        LICENSE
 Author:              Max Kirillov
