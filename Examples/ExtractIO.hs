@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving, ScopedTypeVariables #-}
 module Examples.ExtractIO where
 
 import Language.Haskell.TH
@@ -53,7 +53,7 @@ handleIO mainEQ =
           bindB (name, e) = BindS (VarP name) e
       handleIOf e = walkExpImpl handleIOf e
     mainE <- mainEQ
-    (mainE', _) <- runWriterT (walk handleIOf mainE)
+    (mainE', _) <- runWriterT ((walk :: (Exp -> WriterT [(Name, Exp)] Q Exp) -> [Dec] -> WriterT [(Name, Exp)] Q [Dec]) handleIOf mainE)
     return mainE'
 
 
