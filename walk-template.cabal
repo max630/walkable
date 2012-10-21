@@ -1,5 +1,5 @@
-Name:                th-walk
-Version:             0.1
+Name:                walk-template
+Version:             0.2
 Synopsis:            Class and template to modify a hierarchy of data types
 Homepage:            http://vs1.max630.info/repos/th-walk.git/
 License:             BSD3
@@ -20,4 +20,3 @@ Description:
 Library
   Exposed-modules: Control.Walk.Class, Control.Walk.TH, Control.Walk.THExp
   Build-depends: base, mtl, template-haskell, containers
-  
