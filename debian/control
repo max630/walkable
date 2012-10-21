@@ -27,7 +27,7 @@ Description: Class and template to modify a hierarchy of data types
  of data types.
  Also implements classes and instances to walk through TH declarations, allowing
  to implement non-trivial syntax forms.
-
+ .
  This package contains the normal library files.
 
 Package: libghc-walk-template-prof
@@ -42,7 +42,7 @@ Description: Class and template to modify a hierarchy of data types
  of data types.
  Also implements classes and instances to walk through TH declarations, allowing
  to implement non-trivial syntax forms.
-
+ .
  This package contains the libraries compiled with profiling enabled.
 
 Package: libghc-walk-template-doc
@@ -57,5 +57,5 @@ Description: Class and template to modify a hierarchy of data types
  of data types.
  Also implements classes and instances to walk through TH declarations, allowing
  to implement non-trivial syntax forms.
-
+ .
  This package contains the documentation files.
