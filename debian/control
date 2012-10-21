@@ -1,0 +1,61 @@
+Source: haskell-walk-template
+Priority: extra
+Section: haskell
+Maintainer: Max Kirillov <max@max630.net>
+Build-Depends: debhelper (>= 7.0),
+               haskell-devscripts (>= 0.8),
+               cdbs,
+               ghc,
+               ghc-prof,
+               libghc-mtl-dev,
+               libghc-mtl-prof
+Build-Depends-Indep: ghc-doc,
+                     libghc-mtl-doc
+Standards-Version: 3.9.1
+Homepage: http://vs1.max630.info/repos/th-walk.git/
+
+Package: libghc-walk-template-dev
+Architecture: any
+Depends: ${shlibs:Depends},
+         ${haskell:Depends},
+         ${misc:Depends}
+Recommends: ${haskell:Recommends}
+Suggests: ${haskell:Suggests}
+Provides: ${haskell:Provides}
+Description: Class and template to modify a hierarchy of data types
+ Contains a template function to generate instances for recursive transform
+ of data types.
+ Also implements classes and instances to walk through TH declarations, allowing
+ to implement non-trivial syntax forms.
+
+ This package contains the normal library files.
+
+Package: libghc-walk-template-prof
+Architecture: any
+Depends: ${haskell:Depends},
+         ${misc:Depends}
+Recommends: ${haskell:Recommends}
+Suggests: ${haskell:Suggests}
+Provides: ${haskell:Provides}
+Description: Class and template to modify a hierarchy of data types
+ Contains a template function to generate instances for recursive transform
+ of data types.
+ Also implements classes and instances to walk through TH declarations, allowing
+ to implement non-trivial syntax forms.
+
+ This package contains the libraries compiled with profiling enabled.
+
+Package: libghc-walk-template-doc
+Architecture: all
+Section: doc
+Depends: ${haskell:Depends},
+         ${misc:Depends}
+Recommends: ${haskell:Recommends}
+Suggests: ${haskell:Suggests}
+Description: Class and template to modify a hierarchy of data types
+ Contains a template function to generate instances for recursive transform
+ of data types.
+ Also implements classes and instances to walk through TH declarations, allowing
+ to implement non-trivial syntax forms.
+
+ This package contains the documentation files.
