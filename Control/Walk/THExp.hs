@@ -12,7 +12,8 @@ import Data.Word (Word8)
 $(let hasPrefix s p = take (length p) s == p
   in do
     ([walkExpImplLambda], instancesInfo) <-
-      makeTraverseInfo [''Exp]
+      makeTraverseInfo False
+                      [''Exp]
                       (`elem` [''String, ''Rational, ''Char, ''Integer, ''Int, ''Word8, ''NameFlavour, ''Bool, ''OccName])
                       (\n -> case nameModule n of {Just s | s `hasPrefix` "Language.Haskell.TH." -> True; _ -> False})
                       (`elem` [''Exp, ''String])

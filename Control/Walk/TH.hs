@@ -7,6 +7,7 @@ import Language.Haskell.TH.Ppr (ppr)
 
 import Control.Monad.Writer(WriterT, tell, runWriterT)
 import Control.Monad.Trans(lift)
+import Control.Monad (when)
 
 import Data.Maybe(maybeToList)
 import Data.List(intersperse)
@@ -46,13 +47,14 @@ import qualified Data.Set as S
   Empty instances just copy data argument. Use it for types you are not going to modify,
   because it is not needed of not possible to implement.
  -}
-makeTraverseInfo :: [Name] -- ^ list of start type names to start with
+makeTraverseInfo :: Bool -- ^ verbose
+                  -> [Name] -- ^ list of start type names to start with
                   -> (Name -> Bool) -- ^ if evaluates to true, instance just copies its argument
                   -> (Name -> Bool) -- ^ if evaluates to true, instance recuces to fields
                   -> (Name -> Bool) -- ^ if evaluates to true, type is ignored at all
                   -> Q ([Exp], [(Name, Exp)])
-makeTraverseInfo startTypeNames empty real ignore = do
-  (startLambdas, startDeps) <- runWriterT $ mapM (\n -> makeTraverseLambda n >>= unMaybe n) startTypeNames
+makeTraverseInfo verbose startTypeNames empty real ignore = do
+  (startLambdas, startDeps) <- runWriterT $ mapM (\n -> makeTraverseLambda verbose n >>= unMaybe n) startTypeNames
   instances <- cycle S.empty [] (S.filter (not . ignore) startDeps)
   return (startLambdas, instances)
   where
@@ -60,29 +62,31 @@ makeTraverseInfo startTypeNames empty real ignore = do
     unMaybe n Nothing = fail ("No traverse lambda for: " ++ show n)
     cycle done result (S.minView -> Nothing) = return result
     cycle done result todo@(S.minView -> Just (next, rest)) = do
-      (lambdaMb, newdeps) <- runWriterT $ makeLambda next empty real
-      qRunIO $ putStrLn ("Done lambda: " ++ show (ppr next) ++ maybe " (no instance)" (const "") lambdaMb)
+      (lambdaMb, newdeps) <- runWriterT $ makeLambda verbose next empty real
+      when verbose 
+        (qRunIO $ putStrLn ("Done lambda: " ++ show (ppr next) ++ maybe " (no instance)" (const "") lambdaMb))
       let
         new_done = S.insert next done
         filtered_newdeps = (`S.difference` new_done) $ S.filter (not . ignore) newdeps
       cycle new_done (result ++ zip [next] (maybeToList lambdaMb)) (S.union rest filtered_newdeps)
 
-makeLambda :: Name -> (Name -> Bool) -> (Name -> Bool) -> WriterT (S.Set Name) Q (Maybe Exp)
-makeLambda tName empty real
+makeLambda :: Bool -> Name -> (Name -> Bool) -> (Name -> Bool) -> WriterT (S.Set Name) Q (Maybe Exp)
+makeLambda verbose tName empty real
   | empty tName = lift $ fmap Just $ makeTrivialLambda
-  | real tName = makeTraverseLambda tName
+  | real tName = makeTraverseLambda verbose tName
   | True = fail ("Unknown type: " ++ show tName)
 
 -- TODO: document
-makeTraverseLambda :: Name -> WriterT (S.Set Name) Q (Maybe Exp)
-makeTraverseLambda tName = do
+makeTraverseLambda :: Bool -> Name -> WriterT (S.Set Name) Q (Maybe Exp)
+makeTraverseLambda verbose tName = do
   td0 <- lift $ reify tName
   case td0 of
     TyConI (DataD [] _ [] tcs []) -> do
             tDatas <- mapM (\ (NormalC conName conTypes) ->
                                 do
-                                  lift $ qRunIO $ putStrLn ("Traversing constructor: " ++ show conName ++ " "
-                                                ++ concat (intersperse " " (map (\(_,t ) -> show t) conTypes)))
+                                  when verbose
+                                    (lift $ qRunIO $ putStrLn ("Traversing constructor: " ++ show conName ++ " "
+                                                                ++ concat (intersperse " " (map (\(_,t ) -> show t) conTypes))))
                                   mapM (\(_,t) -> tellTypes t) conTypes
                                   let
                                     l = length conTypes
