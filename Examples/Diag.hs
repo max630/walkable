@@ -1,4 +1,4 @@
-{-# LANGUAGE NoMonomorphismRestriction, TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Examples.Diag where
 
 {-

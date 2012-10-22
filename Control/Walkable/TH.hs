@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, ViewPatterns, RankNTypes #-}
+{-# LANGUAGE TemplateHaskell, ViewPatterns #-}
 module Control.Walkable.TH (makeTraverseInfo, makeTraverseLambda) where
 
 import Language.Haskell.TH

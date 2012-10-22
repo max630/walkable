@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, NoMonomorphismRestriction #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Examples.LCase where
 
 import Language.Haskell.TH
@@ -26,4 +26,4 @@ lcaseHandler = ExpHandler handle
         return (LamE [VarP var] (CaseE (VarE var) clauses''))
     handle exp = walkExpImpl lcaseHandler exp
 
-handleLCase = (>>= walk lcaseHandler)
+handleLCase expQ = expQ >>= walk lcaseHandler

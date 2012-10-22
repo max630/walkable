@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving, ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Examples.ExtractIO where
 
 import Language.Haskell.TH
