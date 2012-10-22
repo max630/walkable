@@ -35,7 +35,7 @@ handleIO mainEQ =
     let
       handleIOMatch e =
         do
-          e' <- walkExpImpl handleIOf e
+          e' <- walkExpImpl ioExpHandler e
           io_res <- lift (newName "io_res")
           tell [(io_res, e')]
           return (VarE io_res)
@@ -51,9 +51,10 @@ handleIO mainEQ =
               (st', bs) <- pop (walk (ExpHandler handleIOf) st)
               return ((map bindB bs) ++ [st'])
           bindB (name, e) = BindS (VarP name) e
-      handleIOf e = walkExpImpl handleIOf e
+      handleIOf e = walkExpImpl ioExpHandler e
+      ioExpHandler = ExpHandler handleIOf
     mainE <- mainEQ
-    (mainE', _) <- runWriterT (walk (ExpHandler handleIOf) mainE)
+    (mainE', _) <- runWriterT (walk ioExpHandler mainE)
     return mainE'
 
 
