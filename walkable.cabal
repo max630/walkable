@@ -1,7 +1,7 @@
 Name:                walkable
 Version:             0.2
 Synopsis:            Class and template to modify a hierarchy of data types
-Homepage:            https://github.com/max630/walk-template
+Homepage:            https://github.com/max630/walkable/
 License:             BSD3
 License-file:        LICENSE
 Author:              Max Kirillov
