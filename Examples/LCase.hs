@@ -4,8 +4,8 @@ module Examples.LCase where
 import Language.Haskell.TH
 import Control.Monad(liftM)
 
-import Control.Walk.Class (walk)
-import Control.Walk.THExp (walkExpImpl)
+import Control.Walkable.Class (walk)
+import Control.Walkable.THExp (walkExpImpl)
 
 lcase :: [a -> b] -> a -> b
 lcase = undefined

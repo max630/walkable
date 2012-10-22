@@ -7,8 +7,8 @@ import Data.Monoid(Monoid(mempty))
 import Control.Monad.Writer(MonadWriter(tell, listen), censor, WriterT, runWriterT)
 import Control.Monad.Trans(MonadTrans(lift))
 
-import Control.Walk.THExp (walkExpImpl)
-import Control.Walk.Class (walk)
+import Control.Walkable.THExp (walkExpImpl)
+import Control.Walkable.Class (walk)
 
 io :: IO a -> a 
 io = undefined

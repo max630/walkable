@@ -1,4 +1,4 @@
-Name:                walk-template
+Name:                walkable
 Version:             0.2
 Synopsis:            Class and template to modify a hierarchy of data types
 Homepage:            https://github.com/max630/walk-template
@@ -18,5 +18,5 @@ Description:
 
 
 Library
-  Exposed-modules: Control.Walk.Class, Control.Walk.TH, Control.Walk.THExp
+  Exposed-modules: Control.Walkable.Class, Control.Walkable.TH, Control.Walkable.THExp
   Build-depends: base, mtl, template-haskell, containers
