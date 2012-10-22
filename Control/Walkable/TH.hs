@@ -15,6 +15,8 @@ import Data.List(intersperse)
 import qualified Data.Set as S
 
 -- TODO:
+-- * make back simple interface for producing Walkable instances
+-- * return to TH-level calculation, instead of messing woith very polymorth expression
 -- * think about not making instances for empties at all, rather copying them in method
 -- ** this might be bad for polymorph case
 -- * (+) make it independent from concrete class (promising?)
