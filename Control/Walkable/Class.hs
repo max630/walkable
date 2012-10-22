@@ -3,8 +3,6 @@ module Control.Walkable.Class where
 
 import Control.Monad (liftM)
 
--- TODO:
--- * generic parameter type (this probably requires another class)
 class Walkable a (b :: (* -> *) -> *) where
   walk :: Monad m => b m -> a -> m a
 
