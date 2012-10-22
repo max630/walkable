@@ -7,7 +7,7 @@ import Data.Monoid(Monoid(mempty))
 import Control.Monad.Writer(MonadWriter(tell, listen), censor, WriterT, runWriterT)
 import Control.Monad.Trans(MonadTrans(lift))
 
-import Control.Walkable.THExp (walkExpImpl)
+import Control.Walkable.THExp (walkExpImpl, ExpHandler(ExpHandler))
 import Control.Walkable.Class (walk)
 
 io :: IO a -> a 
@@ -48,12 +48,12 @@ handleIO mainEQ =
         where
           tr st =
             do
-              (st', bs) <- pop (walk handleIOf st)
+              (st', bs) <- pop (walk (ExpHandler handleIOf) st)
               return ((map bindB bs) ++ [st'])
           bindB (name, e) = BindS (VarP name) e
       handleIOf e = walkExpImpl handleIOf e
     mainE <- mainEQ
-    (mainE', _) <- runWriterT ((walk :: (Exp -> WriterT [(Name, Exp)] Q Exp) -> [Dec] -> WriterT [(Name, Exp)] Q [Dec]) handleIOf mainE)
+    (mainE', _) <- runWriterT (walk (ExpHandler handleIOf) mainE)
     return mainE'
 
 

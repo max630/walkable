@@ -9,6 +9,8 @@ import Language.Haskell.TH.Syntax(NameFlavour, OccName)
 
 import Data.Word (Word8)
 
+data ExpHandler m = ExpHandler { handleExp :: Exp -> m Exp }
+
 $(let hasPrefix s p = take (length p) s == p
   in do
     ([walkExpImplLambda], instancesInfo) <-
@@ -18,15 +20,15 @@ $(let hasPrefix s p = take (length p) s == p
                       (\n -> case nameModule n of {Just s | s `hasPrefix` "Language.Haskell.TH." -> True; _ -> False})
                       (`elem` [''Exp, ''String])
     walkExpImplDec <- [d|
-            walkExpImpl :: Monad m => (Exp -> m Exp) -> Exp -> m Exp
-            walkExpImpl f = ($(return walkExpImplLambda) :: Monad m => (forall t . Walkable m t (Exp -> m Exp) => t -> m t) -> Exp -> m Exp) (walk f)
+            walkExpImpl :: Monad m => (ExpHandler m) -> Exp -> m Exp
+            walkExpImpl f = ($(return walkExpImplLambda) :: Monad m => (forall t . Walkable t ExpHandler => t -> m t) -> Exp -> m Exp) (walk f)
           |]
     instancesDec <- mapM (\ (tName, tLambda) -> [d|
-                        instance Monad m => Walkable m $(conT tName) (Exp -> m Exp) where
-                          walk f = ($(return tLambda) :: Monad m => (forall t . Walkable m t (Exp -> m Exp) => t -> m t) -> $(conT tName) -> m $(conT tName)) (walk f)
+                        instance Walkable $(conT tName) ExpHandler where
+                          walk f = ($(return tLambda) :: Monad m => (forall t . Walkable t ExpHandler => t -> m t) -> $(conT tName) -> m $(conT tName)) (walk f)
                       |])
                       instancesInfo
     return (walkExpImplDec ++ concat instancesDec))
 
-instance Monad m => Walkable m Exp (Exp -> m Exp) where
-  walk f e = f e
+instance Walkable Exp ExpHandler where
+  walk f e = handleExp f e

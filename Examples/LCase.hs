@@ -5,7 +5,7 @@ import Language.Haskell.TH
 import Control.Monad(liftM)
 
 import Control.Walkable.Class (walk)
-import Control.Walkable.THExp (walkExpImpl)
+import Control.Walkable.THExp (walkExpImpl, ExpHandler(ExpHandler))
 
 lcase :: [a -> b] -> a -> b
 lcase = undefined
@@ -18,12 +18,12 @@ handleLCaseF (AppE lcaseV clauses) | lcaseV == (VarE 'lcase) =
                   _ -> fail ("handleLCase: clauses must me list of lambdas: " ++ show (ppr clauses))
     clauses'' <-
       mapM (\v -> case v of
-                    LamE [p] e -> liftM (\e' -> Match p (NormalB e') []) $ walk handleLCaseF e
+                    LamE [p] e -> liftM (\e' -> Match p (NormalB e') []) $ walk (ExpHandler handleLCaseF) e
                     _ -> fail ("handleLCase: only single-pattern lambda is allowed in clauses: " ++ show (ppr v)))
             clauses'
     return (LamE [VarP var] (CaseE (VarE var) clauses''))
-handleLCaseF exp = walkExpImpl handleLCaseF exp
+handleLCaseF exp = walkExpImpl (ExpHandler handleLCaseF) exp
 
 handleLCase expQ = do
   exp <- expQ
-  walk handleLCaseF exp
+  walk (ExpHandler handleLCaseF) exp
