@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, LambdaCase, MultiParamTypeClasses, FlexibleInstances, OverlappingInstances, TypeFamilies #-}
+{-# LANGUAGE TemplateHaskell, LambdaCase, MultiParamTypeClasses, OverlappingInstances, Rank2Types, FlexibleInstances, GADTs #-}
 module Examples.LCase where
 
 import Language.Haskell.TH
@@ -6,14 +6,18 @@ import Control.Monad(liftM)
 
 import Data.Data(Data, gmapM)
 
-class Cast t1 t2 where
-  extM :: Monad m => (t1 -> m t1) -> (t2 -> m t2) -> t1 -> m t1
+data W :: ((* -> *) -> *) where
+  WSingle :: (Data t => t -> m t) -> ExtW m
+  WExt :: Data tP => (Data t => t -> m t) -> (tP -> m tP) -> ExtW m
 
-instance Cast t t where
-  extM _ f = f
+class (Data tP, Data tR) => ExtClass tP tR where
+  extSel :: Monad m => (Data t => t -> m t) -> (tP -> m tP) -> tR -> m tR
 
-instance Cast t1 t2 where
-  extM f _ = f
+instance (Data tP, Data tR) => ExtClass tP tR where
+  extSel f _ x = f x
+
+instance (Data tP) => ExtClass tP tP where
+  extSel _ f x = f x
 
 lcase :: [a -> b] -> a -> b
 lcase = undefined
@@ -24,7 +28,7 @@ descentLCase :: Data d => d -> Q d
 descentLCase = gmapM handler
   where
     handler :: Data d => d -> Q d
-    handler = recurse `extM` (\case
+    handler = (W recurse) `extM` (\case
                 AppE lcaseV clauses | lcaseV == (VarE 'lcase) ->
                   do
                     var <- newName "var"
