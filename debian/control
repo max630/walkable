@@ -4,7 +4,7 @@ Section: haskell
 Maintainer: Max Kirillov <max@max630.net>
 Build-Depends: debhelper (>= 7.0),
                haskell-devscripts (>= 0.8),
-               haddock, happy, alex,
+               haddock,
                cdbs,
                ghc,
                ghc-prof,
