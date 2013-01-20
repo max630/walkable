@@ -1,19 +1,11 @@
-{-# LANGUAGE TemplateHaskell, LambdaCase, MultiParamTypeClasses, FlexibleInstances, OverlappingInstances, TypeFamilies #-}
+{-# LANGUAGE TemplateHaskell, LambdaCase #-}
 module Examples.LCase where
 
 import Language.Haskell.TH
 import Control.Monad(liftM)
 
 import Data.Data(Data, gmapM)
-
-class Cast t1 t2 where
-  extM :: Monad m => (t1 -> m t1) -> (t2 -> m t2) -> t1 -> m t1
-
-instance Cast t t where
-  extM _ f = f
-
-instance Cast t1 t2 where
-  extM f _ = f
+import Data.Generics.Aliases(extM)
 
 lcase :: [a -> b] -> a -> b
 lcase = undefined
